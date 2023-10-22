@@ -1,0 +1,10 @@
+text on line 1
+also on line 2
+finally on line 3
+
+there was an empty line above
+THIS is a special line indeed
+going
+going
+going
+gone
