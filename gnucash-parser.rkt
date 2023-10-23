@@ -47,11 +47,8 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
   (account "" "" ""))
 
 (define (print-account act)
-  (block
-   (display (account-name act))
-   (display " (")
-   (display (account-type act))
-   (displayln ")")))
+  (printf "~a (~a) [~a]~%" (account-name act) (account-type act) (account-id act)))
+  
 
 ;; ----------------
 ;;   GLOBAL LISTS
@@ -60,11 +57,41 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 ;; 
 ;; ----------------
 ;; TODO: eliminate globals?
-(define *accounts* (list))
+
+(define *current-file-path* "UNDEFINED FILE PATH")
+
+(define *accounts-by-name* (make-hash))
+(define *accounts-by-id* (make-hash))
+
+(define (get-account-by-name name) (hash-ref *accounts-by-name* name))
+(define (get-account-by-id id) (hash-ref *accounts-by-id* id))
 
 (define (print-all-accounts)
-  (for ([act *accounts*])
+  (for ([act (hash-values *accounts-by-name*)])
     (print-account act)))
+
+;; print a list of command and stats about the data
+(define (print-commands)
+  (block
+   (displayln "")
+   (displayln "--------")
+   (displayln "COMMANDS")
+   (displayln "--------")
+   (displayln "(print-commands) -> display the list of available commands")
+   (displayln "(print-overview) -> display an overview of the GnuCash data")
+   (displayln "(print-all-accounts) -> display a list of accounts with some basic info")
+   (displayln "")))
+
+(define (print-overview)
+  (block
+   (displayln "")
+   (displayln "--------")
+   (displayln "OVERVIEW")
+   (displayln "--------")
+   (printf "File path: ~a~%" *current-file-path*)
+   (printf "Number of accounts: ~a~%" (length *accounts-by-name*))
+   (displayln "")))
+
 
 ;;-----------
 ;;  HELPERS
@@ -126,7 +153,6 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 
 (define (import-account in)
   (let ([account (make-blank-account)])
-    (set! *accounts* (cons account *accounts*))
     ;(displayln (length *accounts*))
     (let act-loop ([line (next-line in)])
       (if (equal? line ACCOUNT-END)
@@ -142,7 +168,8 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
                [(string-prefix? line ACCOUNT-TYPE)
                 (set-account-type! account value)]))
           (act-loop (next-line in)))))    
-    account))
+    (hash-set*! *accounts-by-name* (account-name account) account)
+    (hash-set*! *accounts-by-id* (account-id account) account)))
    
 
 ;;-----------------------------
@@ -152,6 +179,7 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 ; the GnuCash reader loops a GnuCash to the EOF and sends lines to the dispatch function
 (define (import-gnucash-file path)
   (block
+   (set! *current-file-path* path)
    (call-with-input-file path    
     (lambda (in)
       (let loop ([line (next-line in)])
@@ -180,7 +208,7 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
   (import-gnucash-file TRUNCATED-GNUCASH-FILE))
 
 (demo)
-(print-all-accounts)
+(print-commands)
   
 
 ;; --------------
