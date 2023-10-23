@@ -1,17 +1,19 @@
 #lang racket
-(require racket/block)
-(require racket/list)
-(require rackunit)
-(require compatibility/mlist)
+(require
+  racket/block
+  racket/list
+  rackunit
+  racket/gui/base)
+
+(require "gnucash-objects.rkt")
+
+
+ ;(struct-out test-struct))
 
 #|
-Parse a GnuCash file into structs or classes.
-
-We will parse the XML-like line by line instead of using an XML parser.
-
-Object definitions start and end with specific "markers". For example, an account
-definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:account>.
-
+Parse a GnuCash file into data structures.
+Export the data structures individually instead of packaging them in a
+main repo object.
 |#
 
 (define HUGE-SAMPLE-GNUCASH-FILE
@@ -29,6 +31,7 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 (define ACCOUNT-NAME "<act:name>")
 (define ACCOUNT-TYPE "<act:type>")
 (define ACCOUNT-GUID "<act:id type=\"guid\">")
+(define ACCOUNT-PARENT-ID "<act:parent type=\"guid\">")
 
 
 (define TRANSACTION-START "gnc:transaction version=\"2.0.0\">")
@@ -41,38 +44,18 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 ;;   STRUCTS
 ;; -----------
 
-(struct account (name type id) #:mutable)
+(struct account (name type id parent-id) #:mutable)
 
 (define (make-blank-account)
-  (account "" "" ""))
+  (account "" "" "" ""))
 
 (define (print-account act)
-  (printf "~a (~a) [~a]~%" (account-name act) (account-type act) (account-id act)))
+  (printf "~a (~a) [~a] Parent-id:~a~%"
+          (account-name act) (account-type act) (account-id act) (account-parent-id act)))
   
-
-;; ----------------
-;;   GLOBAL LISTS
-
-;;  lists are mutable so simplify the import process
-;; 
-;; ----------------
-;; TODO: eliminate globals?
-
-(define *current-file-path* "UNDEFINED FILE PATH")
-
-(define *accounts-by-name* (make-hash))
-(define *accounts-by-id* (make-hash))
-
-(define (get-account-by-name name) (hash-ref *accounts-by-name* name))
-(define (get-account-by-id id) (hash-ref *accounts-by-id* id))
-
-(define (print-all-accounts)
-  (for ([act (hash-values *accounts-by-name*)])
-    (print-account act)))
-
 ;; print a list of command and stats about the data
+#|
 (define (print-commands)
-  (block
    (displayln "")
    (displayln "--------")
    (displayln "COMMANDS")
@@ -80,22 +63,24 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
    (displayln "(print-commands) -> display the list of available commands")
    (displayln "(print-overview) -> display an overview of the GnuCash data")
    (displayln "(print-all-accounts) -> display a list of accounts with some basic info")
-   (displayln "")))
-
-(define (print-overview)
-  (block
+   (displayln ""))
+|#
+(define (print-overview data)
    (displayln "")
    (displayln "--------")
    (displayln "OVERVIEW")
    (displayln "--------")
-   (printf "File path: ~a~%" *current-file-path*)
-   (printf "Number of accounts: ~a~%" (length *accounts-by-name*))
-   (displayln "")))
+   (printf "File path: ~a~%" (send data get-file-path))
+   (printf "Number of accounts: ~a~%" (send data num-accounts))
+   (displayln ""))
 
 
 ;;-----------
 ;;  HELPERS
 ;;-----------
+
+
+  
 
 ;; given a port, return the next-line trimmed
 (define (next-line in)
@@ -129,30 +114,9 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 ;; FACTORY FUNCTIONS
 ;;------------------
 
-#|
+;; read an account from the file and return in 
 (define (import-account in)
-  (let ([account '()])
-    (let act-loop ([line (next-line in)])
-      (cond
-        [(equal? line ACCOUNT-END) (displayln account)]
-        [(string-prefix? line ACCOUNT-NAME)
-         (block
-          (set! account (element-value line))
-          (act-loop (next-line in)))]
-       [(string-contains? line ACCOUNT-GUID)
-                 (block
-          (set! account (cons (element-value line) account))
-          (act-loop (next-line in)))]
-       [(string-prefix? line ACCOUNT-TYPE)
-         (block
-          (set! account (cons (element-value line) account))
-          (act-loop (next-line in)))]
-        [else (act-loop (next-line in))]))
-    (displayln account)))
-|#
-
-(define (import-account in)
-  (let ([account (make-blank-account)])
+  (let ([account (make-object account%)])
     ;(displayln (length *accounts*))
     (let act-loop ([line (next-line in)])
       (if (equal? line ACCOUNT-END)
@@ -162,14 +126,16 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
              (cond
                [(equal? line ACCOUNT-END) '()]
                [(string-prefix? line ACCOUNT-NAME)
-                (set-account-name! account value)]
+                (send account set-name! value)]
+               [(string-prefix? line ACCOUNT-PARENT-ID)
+                (send account set-parent-id! value)]
                [(string-contains? line ACCOUNT-GUID)
-                (set-account-id! account value)]
+                (send account set-id! value)]
                [(string-prefix? line ACCOUNT-TYPE)
-                (set-account-type! account value)]))
-          (act-loop (next-line in)))))    
-    (hash-set*! *accounts-by-name* (account-name account) account)
-    (hash-set*! *accounts-by-id* (account-id account) account)))
+                (send account set-type! value)]))
+          (act-loop (next-line in)))))
+    ;;(printf "IMPORTED account '~a'~%" (send account as-string))
+    account))
    
 
 ;;-----------------------------
@@ -178,8 +144,8 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 
 ; the GnuCash reader loops a GnuCash to the EOF and sends lines to the dispatch function
 (define (import-gnucash-file path)
-  (block
-   (set! *current-file-path* path)
+  (let ([gnucash (make-object gnucash-data%)])
+   (send gnucash set-file-path path)
    (call-with-input-file path    
     (lambda (in)
       (let loop ([line (next-line in)])
@@ -187,29 +153,55 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
           [(eof-object? line) '()]
           [ else
             (block
-              (dispatch-line line in)
+              (dispatch-line gnucash line in)
               (loop (next-line in)))]))))
-   (displayln "IMPORT COMPLETED")))
-;;      (displayln (read-line in)))))
+    gnucash))
 
 ;; detect start of object definition and route to matching function
 ;; arg line: string current line (CR/LF and left-padding removed)
 ;; arg in: the input port
-(define (dispatch-line line in)
+(define (dispatch-line gnucash-data line in)
   (cond
-    [(equal? line ACCOUNT-START) (import-account in)]
+    [(equal? line ACCOUNT-START) (send gnucash-data add-account (import-account in))]
     [(equal? line TRANSACTION-START) (displayln "Found a transaction")]))
       
 ;; ----------
-;;    DEMOS
+;;   DEMO
 ;; ----------
 
 (define (demo)
-  (import-gnucash-file TRUNCATED-GNUCASH-FILE))
+  (displayln "----------------------------")
+  (displayln "         DEMO               ")
+  (displayln "----------------------------")
+  (define gnucash-data (import-gnucash-file TRUNCATED-GNUCASH-FILE))
+  (print-overview gnucash-data)
+  (displayln "----------------------------")
+  (send gnucash-data display-all-accounts)
+  (displayln ""))
 
 (demo)
-(print-commands)
-  
+
+
+#|
+(define main-frame (new frame% [label "My GnuCash"]
+                      [width 900]
+                      [height 900]
+                      [alignment '(left top)]))
+
+(send main-frame show #t)
+
+(define group-box
+  (new group-box-panel%
+     (parent main-frame)
+     (label "Accounts")))
+
+(new list-box%
+     [label ""]
+     [parent group-box]
+     [choices (hash-keys *accounts-by-name*)])
+     ;[choices '("a" "k" "o")])
+
+|#
 
 ;; --------------
 ;;   UNIT TESTS
@@ -221,5 +213,4 @@ definition starts with: <gnc:account version="2.0.0"> and ends with: </gnc:accou
 (check-equal? (element-value "<name><df") "")
 (check-equal? (element-value "name") "")
 (check-equal? (element-value "name><df") "") ;; element does not start with <
-
 
