@@ -35,44 +35,19 @@ main repo object.
 (define ACCOUNT-GUID "<act:id type=\"guid\">")
 (define ACCOUNT-PARENT-ID "<act:parent type=\"guid\">")
 
-(define TRANSACTION-START "gnc:transaction version=\"2.0.0\">")
+(define TRANSACTION-START "<gnc:transaction version=\"2.0.0\">")
 (define TRANSACTION-END "</gnc:transaction>")
+(define TRANSACTION-DESCRIPTION "<trn:description>")
+(define TRANSACTION-DATE-POSTED "<trn:date-posted>")
+(define TRANSACTION-ID "<trn:id type=\"guid\">")
 
-;; -----------
-;;   STRUCTS
-;; -----------
-
-(struct account (name type id parent-id) #:mutable)
-
-(define (make-blank-account)
-  (account "" "" "" ""))
-
-(define (print-account act)
-  (printf "~a (~a) [~a] Parent-id:~a~%"
-          (account-name act) (account-type act) (account-id act) (account-parent-id act)))
-  
-;; print a list of command and stats about the data
-#|
-(define (print-commands)
-   (displayln "")
-   (displayln "--------")
-   (displayln "COMMANDS")
-   (displayln "--------")
-   (displayln "(print-commands) -> display the list of available commands")
-   (displayln "(print-overview) -> display an overview of the GnuCash data")
-   (displayln "(print-all-accounts) -> display a list of accounts with some basic info")
-   (displayln ""))
-|#
-
-
-;;-----------
-;;  HELPERS
-;;-----------
-
-
-  
-
-;; given a port, return the next-line trimmed
+;;------------------
+;;  IMPORT HELPERS
+;;------------------
+ 
+;; given a port, return the next-line, trimmed
+;; NOTE: some account description span many lines;
+;;       one may need to fix that here (loop and append until line ends in >)
 (define (next-line in)
   (let ([line (read-line in 'any)])
     (if (eof-object? line)
@@ -81,7 +56,7 @@ main repo object.
 
 ;; return the location of a character in a string, -1 if not found
 ;; char must be passed as a character, like "a" is #\a
-(define (my-position str char)
+(define (char-position str char)
   (let ([len (string-length str)])
     (let loop ([n 0])
       (cond
@@ -90,21 +65,36 @@ main repo object.
          [else (loop (add1 n))]))))
 
 ;; extract inner string from xml-like element
+;; fix: some values in account description can be multiline
+;;      so, some lines don't have a start and finish
+;;      FIX is skip lines that don't start with '<'
 (define (element-value str)
-  (let ([index> (my-position str #\>)])
-    (if (negative? index>)
-        ""
-        ;; skip the first < and add 1 to index later
-        (let ([index< (my-position (substring str 1) #\<)])
-          (if (negative? index<)
-              ""
-              (substring str (+ 1 index>) (add1 index<)))))))
+  (if (not (string-prefix? str "<"))
+      ""
+      (let ([index> (char-position str #\>)])
+        (if (negative? index>)
+            ""
+            ;; skip the first < and add 1 to index later
+            (let ([index< (char-position (substring str 1) #\<)])
+              (if (negative? index<)
+                  ""
+                  (substring str (+ 1 index>) (add1 index<))))))))
 
+;; the required values is on the next line; skip one line after
+;; example:
+;;   <date>
+;;     <iso-date>2012-11-12</iso-date>
+;;   </date>
+;; arg in is what is needed; don't care about the value of the starting line like <date>
+(define (next-line-element-value in)
+  (let ([line (next-line in)])
+    (element-value line)))
+  
 ;;-------------------
 ;; FACTORY FUNCTIONS
 ;;------------------
 
-;; read an account from the file and return in 
+;; read an account from the file and return it
 (define (import-account in)
   (let ([account (make-object account%)])
     ;(displayln (length *accounts*))
@@ -123,10 +113,30 @@ main repo object.
                 (send account set-id! value)]
                [(string-prefix? line ACCOUNT-TYPE)
                 (send account set-type! value)]))
-          (act-loop (next-line in)))))
-    ;;(printf "IMPORTED account '~a'~%" (send account as-string))
+          (act-loop (next-line in)))))    
     account))
-   
+
+;; read a transaction from the file and return it
+(define (import-transaction in)
+  (let ([transaction (make-object transaction%)])
+    (let tran-loop ([line (next-line in)])
+      (if (equal? line TRANSACTION-END)
+          transaction
+          (block
+           (let ([value (element-value line)])
+             (cond
+               [(string-prefix? line TRANSACTION-DESCRIPTION)
+                (send transaction set-description! value)]
+               [(string-prefix? line TRANSACTION-DATE-POSTED)
+                (send transaction set-date-posted! (next-line-element-value in))]
+               [(string-contains? line TRANSACTION-ID)
+                 (send transaction set-id! value)]))
+               ;; TODO               
+               ;;[(string-prefix? line SPLITS-BEGIN)
+               ;; (send transaction add-splits (import-splits in))]))
+           (tran-loop (next-line in)))))
+    ;(printf "IMPORTED transaction ~a~%" (send transaction get-id))
+    transaction))
 
 ;;-----------------------------
 ;;    MAIN READER AND DISPATCH
@@ -145,7 +155,7 @@ main repo object.
             (block
               (dispatch-line gnucash line in)
               (loop (next-line in)))]))))
-    (printf "IMPORTED ~a ACCOUNTS before purging templates~%" (send gnucash num-accounts))
+    ;(printf "IMPORTED ~a ACCOUNTS before purging templates~%" (send gnucash num-accounts))
     (build-metadata gnucash)
     gnucash))
 
@@ -155,7 +165,7 @@ main repo object.
 (define (dispatch-line gnucash-data line in)
   (cond
     [(equal? line ACCOUNT-START) (send gnucash-data add-account! (import-account in))]
-    [(equal? line TRANSACTION-START) (displayln "Found a transaction")]))
+    [(equal? line TRANSACTION-START) (send gnucash-data add-transaction! (import-transaction in))]))
 
 
 ;; -------------------------------------------------
@@ -230,11 +240,13 @@ main repo object.
   (displayln "----------------------------")
   (displayln "         DEMO               ")
   (displayln "----------------------------")
-  (define gnucash-data (import-gnucash-file TRUNCATED-GNUCASH-FILE))
-  (send gnucash-data print-overview)
+  (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
+  ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
+  (print-overview gnucash-data)
   (displayln "----------------------------")
   (printf "parent of first account: ~a~%" (send (third (send gnucash-data accounts-sorted-by-name)) get-name))  
-  (send gnucash-data display-all-accounts)
+  ;(display-all-accounts gnucash-data )
+  (display-all-transactions gnucash-data)
   (displayln ""))
 
 (demo)
@@ -265,10 +277,11 @@ main repo object.
 ;;   UNIT TESTS
 ;; --------------
 
-(check-eq? (my-position "allo" #\l) 1)
-(check-eq? (my-position "allo" #\x) -1)
+(check-eq? (char-position "allo" #\l) 1)
+(check-eq? (char-position "allo" #\x) -1)
 (check-equal? (element-value "<name>bob<df") "bob")
 (check-equal? (element-value "<name><df") "")
 (check-equal? (element-value "name") "")
 (check-equal? (element-value "name><df") "") ;; element does not start with <
-
+(check-equal? (element-value "<name>asdfasdfa") "") ;; element doesn't end on same line: skip it
+(check-equal? (element-value "asdfafda</name>") "") ;; element ends here, but we don't have the start, so skip it
