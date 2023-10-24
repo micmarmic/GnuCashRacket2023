@@ -7,6 +7,8 @@
 
 (require "gnucash-objects.rkt")
 
+(define *TEMPLATE-ROOT-NAME* "Template Root")
+(define *ROOT-NAME* "Root Account")
 
  ;(struct-out test-struct))
 
@@ -24,7 +26,7 @@ main repo object.
   "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\TRUNCATED.gnucash")
 
 ;; -------------------
-;;   OBJECTS MARKERS
+;;   OBJECT MARKERS
 ;; -------------------
 (define ACCOUNT-START "<gnc:account version=\"2.0.0\">")
 (define ACCOUNT-END "</gnc:account>")
@@ -33,12 +35,8 @@ main repo object.
 (define ACCOUNT-GUID "<act:id type=\"guid\">")
 (define ACCOUNT-PARENT-ID "<act:parent type=\"guid\">")
 
-
 (define TRANSACTION-START "gnc:transaction version=\"2.0.0\">")
 (define TRANSACTION-END "</gnc:transaction>")
-
-(define debug-count-account 0)
-(define debug-count-transactions 0)
 
 ;; -----------
 ;;   STRUCTS
@@ -65,14 +63,6 @@ main repo object.
    (displayln "(print-all-accounts) -> display a list of accounts with some basic info")
    (displayln ""))
 |#
-(define (print-overview data)
-   (displayln "")
-   (displayln "--------")
-   (displayln "OVERVIEW")
-   (displayln "--------")
-   (printf "File path: ~a~%" (send data get-file-path))
-   (printf "Number of accounts: ~a~%" (send data num-accounts))
-   (displayln ""))
 
 
 ;;-----------
@@ -145,7 +135,7 @@ main repo object.
 ; the GnuCash reader loops a GnuCash to the EOF and sends lines to the dispatch function
 (define (import-gnucash-file path)
   (let ([gnucash (make-object gnucash-data%)])
-   (send gnucash set-file-path path)
+   (send gnucash set-file-path! path)
    (call-with-input-file path    
     (lambda (in)
       (let loop ([line (next-line in)])
@@ -155,6 +145,8 @@ main repo object.
             (block
               (dispatch-line gnucash line in)
               (loop (next-line in)))]))))
+    (printf "IMPORTED ~a ACCOUNTS before purging templates~%" (send gnucash num-accounts))
+    (build-metadata gnucash)
     gnucash))
 
 ;; detect start of object definition and route to matching function
@@ -162,9 +154,48 @@ main repo object.
 ;; arg in: the input port
 (define (dispatch-line gnucash-data line in)
   (cond
-    [(equal? line ACCOUNT-START) (send gnucash-data add-account (import-account in))]
+    [(equal? line ACCOUNT-START) (send gnucash-data add-account! (import-account in))]
     [(equal? line TRANSACTION-START) (displayln "Found a transaction")]))
-      
+
+
+;; -------------------------------------------------
+;;   BUILD METADATA
+;;   Links and references not explicit in raw data
+;; -------------------------------------------------
+
+;; main function for building metata
+;; MODIFIES gnucash-data
+;; no return(define (build-metadata gnucash-data)
+(define (build-metadata gnucash-data)
+  (account-metadata gnucash-data))
+
+;; build metadata for accounts
+;; eg. link to parent object using id from file,
+;; build full name with all parent names,
+;; hide template accounts
+;; MODIFIES gnucash-date
+;; no return
+(define (account-metadata gnucash-data)
+  (let ([accounts (send gnucash-data accounts-sorted-by-name)]
+        [template-root-id (send (send gnucash-data account-by-name *TEMPLATE-ROOT-NAME*) get-id)])
+    ; link to parent object
+    (for ([act accounts])
+      (let ([parent-id (send act get-parent-id)])
+        (cond [(not (equal? "" parent-id))          
+            (send act set-parent! (send gnucash-data account-by-id parent-id))])))
+    ; remove templates; yes we loop again
+    ; identify root
+    (for ([act (send gnucash-data accounts-sorted-by-name)])
+      (let ([account-name (send act get-name)]
+            [account-id (send act get-id)] 
+            [parent-id (send act get-parent-id)])
+        ;(printf "name: ~a parent-id: ~a (t-r-id: ~a)~%" account-name parent-id template-root-id)
+        (cond [(equal? account-name *ROOT-NAME*) (send gnucash-data set-root-account! act)])
+        (cond [(or (equal? account-name *TEMPLATE-ROOT-NAME*) (equal? template-root-id parent-id))
+              (send gnucash-data remove-account act)])))))
+   
+
+
 ;; ----------
 ;;   DEMO
 ;; ----------
@@ -174,8 +205,9 @@ main repo object.
   (displayln "         DEMO               ")
   (displayln "----------------------------")
   (define gnucash-data (import-gnucash-file TRUNCATED-GNUCASH-FILE))
-  (print-overview gnucash-data)
+  (send gnucash-data print-overview)
   (displayln "----------------------------")
+  (printf "parent of first account: ~a~%" (send (third (send gnucash-data accounts-sorted-by-name)) get-name))  
   (send gnucash-data display-all-accounts)
   (displayln ""))
 

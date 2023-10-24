@@ -2,31 +2,36 @@
 (require rackunit)
 (require racket/block)
 
-
-(provide gnucash-data% account%)
+(provide gnucash-data% account% )
 
 (define gnucash-data%
   (class object%
     (super-new)
-    (init-field [root-account void] [accounts-by-name (make-hash)] [accounts-by-id (make-hash)]
+    (field [root-account void] [accounts-by-name (make-hash)] [accounts-by-id (make-hash)]
                 [file-path ""])
 
     ;; setters-getters
-    (define/public (set-root-account account) (set! root-account account))
-    (define/public (set-file-path arg-path) (set! file-path arg-path))
+    (define/public (set-root-account! account) (set! root-account account))
+    (define/public (set-file-path! arg-path) (set! file-path arg-path))
     (define/public (get-file-path) file-path)
     (define/public (num-accounts) (length (hash-values accounts-by-id)))
     
-    (define/public (add-account account)
+    (define/public (add-account! account)
       (if (void? account)
           (error "Account is void!")
           (block
            (hash-set*! accounts-by-name (send account get-name) account)
            (hash-set*! accounts-by-id (send account get-id) account))))
+    (define/public (remove-account account)
+      (hash-remove! accounts-by-name (send account get-name))
+      (hash-remove! accounts-by-id (send account get-id)))
+    
     (define/public (account-by-name name) (hash-ref accounts-by-name name))
-
+    (define/public (account-by-id id) (hash-ref accounts-by-id id))   
     (define/public (accounts-sorted-by-name)
       (sort (hash-values accounts-by-name) account-name<?))
+
+    
 
     ;; misc methods
     (define/public (display-all-accounts)
@@ -34,13 +39,24 @@
         (if (void? act)
             (display "ERROR! account is void!!!")
             (displayln (send act as-string)))))
+
+    (define/public (print-overview)
+      (displayln "")
+      (displayln "--------")
+      (displayln "OVERVIEW")
+      (displayln "--------")
+      (printf "File path: ~a~%" file-path)
+      (printf "Number of accounts: ~a~%" (num-accounts))
+      (printf "(Root account has id '~a'~%" (send root-account get-id))
+      (displayln ""))
+
 ))
 
     
 (define account%
   (class object%
     (super-new)
-    (init-field [name ""] [id ""] [parent-id ""] [type ""] [sort-name ""])
+    (field [name ""] [id ""] [parent-id ""] [type ""] [sort-name ""] [parent void])
 
     ;; setters-getters
     (define/public (set-name! arg-name)
@@ -53,13 +69,20 @@
     (define/public (get-id) id)
     (define/public (set-parent-id! arg-parent-id) (set! parent-id arg-parent-id))
     (define/public (get-parent-id) parent-id)
+    (define/public (set-parent! arg-parent) (set! parent arg-parent))
+    (define/public (get-parent) parent)
     (define/public (set-type! arg-type) (set! type arg-type))
     (define/public (get-type) type)
+   
 
     ;; display
-    (define/public (as-string) (format "~a (~a) [id: ~a] [parent-id: ~a]" name type id parent-id))
-    
-    ))
+    (define/public (as-string)
+      (let ([parent-name "TODO"])
+        (if (equal? "" parent-id)
+            (set! parent-name "NO PARENT")
+            (set! parent-name (send parent get-name)))        
+        (format "~a (~a) [id: ~a] [parent-name: ~a]" name type id parent-name)))  
+))
 
 
 ;;-----------
