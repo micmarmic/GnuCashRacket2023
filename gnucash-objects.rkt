@@ -14,6 +14,9 @@
     (define/public (set-root-account! account) (set! root-account account))
     (define/public (set-file-path! arg-path) (set! file-path arg-path))
     (define/public (get-file-path) file-path)
+
+
+
     (define/public (num-accounts) (length (hash-values accounts-by-id)))
     
     (define/public (add-account! account)
@@ -56,7 +59,8 @@
 (define account%
   (class object%
     (super-new)
-    (field [name ""] [id ""] [parent-id ""] [type ""] [sort-name ""] [parent void])
+    (field [name ""] [id ""] [parent-id ""] [type ""] [sort-name ""] [parent (void)]
+            [full-name ""])
 
     ;; setters-getters
     (define/public (set-name! arg-name)
@@ -64,6 +68,10 @@
         (set! name arg-name)
         (set! sort-name arg-sort-name)))
     (define/public (get-name) name)
+
+    (define/public (set-full-name! arg-full-name) (set! full-name arg-full-name))
+    (define/public (get-full-name) full-name)
+    
     (define/public (get-sort-name) sort-name)
     (define/public (set-id! arg-id) (set! id arg-id))
     (define/public (get-id) id)
@@ -78,10 +86,10 @@
     ;; display
     (define/public (as-string)
       (let ([parent-name "TODO"])
-        (if (equal? "" parent-id)
+        (if (void? parent)
             (set! parent-name "NO PARENT")
             (set! parent-name (send parent get-name)))        
-        (format "~a (~a) [id: ~a] [parent-name: ~a]" name type id parent-name)))  
+        (format "~a (~a) [id: ~a] [parent-name: ~a] Full name: '~a'" name type id parent-name full-name)))  
 ))
 
 

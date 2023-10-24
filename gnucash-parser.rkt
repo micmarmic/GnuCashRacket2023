@@ -185,16 +185,42 @@ main repo object.
             (send act set-parent! (send gnucash-data account-by-id parent-id))])))
     ; remove templates; yes we loop again
     ; identify root
+    ; build full name with recursive function
     (for ([act (send gnucash-data accounts-sorted-by-name)])
       (let ([account-name (send act get-name)]
             [account-id (send act get-id)] 
             [parent-id (send act get-parent-id)])
         ;(printf "name: ~a parent-id: ~a (t-r-id: ~a)~%" account-name parent-id template-root-id)
-        (cond [(equal? account-name *ROOT-NAME*) (send gnucash-data set-root-account! act)])
-        (cond [(or (equal? account-name *TEMPLATE-ROOT-NAME*) (equal? template-root-id parent-id))
-              (send gnucash-data remove-account act)])))))
-   
+        
+        (cond [(equal? account-name *ROOT-NAME*) (send gnucash-data set-root-account! act)]
+              [(or (equal? account-name *TEMPLATE-ROOT-NAME*) (equal? template-root-id parent-id))
+              (send gnucash-data remove-account act)]
+              [else (build-full-name act)])))))
 
+;; prepend the parent name to the full-name of the account
+;; recurse up the parent tree
+(define (build-full-name account)
+  ; start by setting full-name to account name
+  (send account set-full-name! (send account get-name))
+  (let loop ([parent (send account get-parent)])
+    (cond
+         [(not (or (void? parent) (equal? *ROOT-NAME* (send parent get-name))))
+               (let* ([full-name (send account get-full-name)]
+                      [parent-name (send parent get-name)]
+                      [new-full-name (string-append parent-name ":" full-name)])
+                 (send account set-full-name! new-full-name)
+                 (loop (send parent get-parent)))])))
+
+  #|
+  (if (void? current-parent)
+      void
+      (let* ([parent-name (send current-parent get-name)]
+            [full-name (send account get-full-name)]
+            [new-full-name (string-append parent-name ":" full-name)])
+        (send account set-full-name! new-full-name)
+        (build-full-name-rec account (send current-parent get-parent)))))
+               
+  |#
 
 ;; ----------
 ;;   DEMO
