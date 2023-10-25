@@ -2,8 +2,9 @@
 (require rackunit)
 (require racket/block)
 
-(provide gnucash-data% account% transaction%
-         print-overview display-all-accounts display-all-transactions)
+(provide gnucash-data% account% transaction% split%
+         print-overview display-all-accounts display-all-transactions
+         display-all-transactions-in-account)
 
 
 ;; --------------------------------------------
@@ -46,7 +47,12 @@
       (hash-remove! accounts-by-id (send account get-id)))
     
     (define/public (account-by-name name) (hash-ref accounts-by-name name))
-    (define/public (account-by-id id) (hash-ref accounts-by-id id))   
+
+    ;; return (void) if account doesnt' exist
+    (define/public (account-by-id id)
+      (if (hash-has-key? accounts-by-id id)
+          (hash-ref accounts-by-id id)
+          (void)))
     (define/public (accounts-sorted-by-name)
       (sort (hash-values accounts-by-name) account-name<?))))
 
@@ -86,19 +92,28 @@
 (define split%
   (class object%
     (super-new)
-    (field [id ""] [account (void)] [value 0.0] [quantity 0.0] [memo ""] [splits '()])
+    (field [id ""] [account-id ""] [account (void)] [value 0.0] [quantity 0.0] [memo ""] [splits '()])
 
     (define/public (set-id! arg-id) (set! id arg-id))
+    (define/public (set-account-id! arg-account-id) (set! account-id arg-account-id))
     (define/public (set-account! arg-account) (set! account arg-account))
+    
+    (define/public (get-id!) id)
+    (define/public (get-account-id) account-id)
+    (define/public (get-account) account)
+    
     (define/public (set-value! arg-value) (set! value arg-value))
     (define/public (set-quantity! arg-quantity) (set! quantity arg-quantity))
-    (define/public (set-memo! arg-memo) (set! memo arg-memo))
-
-    (define/public (get-id!) id)
-    (define/public (get-account) account)
     (define/public (get-value) value)
     (define/public (get-quantity) quantity)
+
     (define/public (get-memo) memo)
+    (define/public (set-memo! arg-memo) (set! memo arg-memo))
+    
+
+    (define/public (as-string)
+      (let ([account-str (if (void? account) id (send account get-name))])
+        (format "Memo:~a Account: ~a Value:~a Quantity: ~a" memo account-str value quantity)))
     ))
 
 ;; ------------------
@@ -120,16 +135,21 @@
     (define/public (get-description) description)
     (define/public (get-date-posted) date-posted)
 
-    ;; add a list of splits to the transaction (one time during import)
-    ;; add this transaction to the account for each individual split
-    (define/public (add-all-splits! list-splits)
-      (set! splits list-splits)
-      (for ([split list-splits])
-        (let ([split-account (send split get-account)])
-          (send split-account add-transaction! this))))
+    (define/public (num-splits) (length splits))
 
+    (define/public (get-splits) splits)
+    (define/public (set-splits! list-splits) (set! splits list-splits))
+      
     (define/public (as-string)
-        (format "Date:~a Desc:~a Id: ~a" date-posted description id))  
+      (let* ([result (format "Date:~a Desc:~a Id: ~a~ (~a splits)%"
+                             date-posted description id (num-splits))])
+        (if (void? splits)
+            (set! result (string-append result "\n" "NO SPLITS"))
+            ;;(set! result (string-append result "   \n" "asplit")))
+            (for ([split splits])
+              (set! result (string-append result "\n   " (send split as-string)))))
+        result))
+
 ))
     
 
@@ -165,6 +185,9 @@
     (define/public (get-type) type)
    
     (define/public (add-transaction! transaction) (set! transactions (cons transaction transactions)))
+    (define/public (num-transactions) (length transactions))
+    (define/public (transactions-sorted-by-date)
+      (sort transactions transaction-date<?))
     
     ;; display
     (define/public (as-string)
@@ -175,6 +198,15 @@
         (format "~a (~a) [id: ~a] [parent-name: ~a] Full name: '~a'" name type id parent-name full-name)))  
 ))
 
+;; -----------------------------------
+;; Functions with account% as arg
+;; -----------------------------------
+(define (display-all-transactions-in-account account)
+  (block
+   (printf "DEBUG ACCOUNT: ~a~%" (send account get-name))
+   (printf "NUM TRANSACTIONS: ~a~%" (send account num-transactions))   
+   (for ([transaction (send account transactions-sorted-by-date)])
+    (displayln (send transaction as-string)))))
 
 ;;-----------------------
 ;;  HELPERS FOR SORTING
@@ -192,6 +224,10 @@
 (define (account-name<? a1 a2)
   (string<? (send a1 get-sort-name) (send a2 get-sort-name)))
 
+(define (transaction-date<? t1 t2)
+  (string<? (send t1 get-date-posted) (send t2 get-date-posted)))
+
+  
 ;; replace accented chars with non-accented equiv and lower the case
 (define (lcase-no-accents str)
   (if (equal? str "")

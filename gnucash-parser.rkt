@@ -41,6 +41,17 @@ main repo object.
 (define TRANSACTION-DATE-POSTED "<trn:date-posted>")
 (define TRANSACTION-ID "<trn:id type=\"guid\">")
 
+(define ALL-SPLITS-START "<trn:splits>")
+(define ALL-SPLITS-END "</trn:splits>")
+(define SPLIT-START "<trn:split>")
+(define SPLIT-END "</trn:split>")
+(define SPLIT-ID "<split:id type=\"guid\">")
+(define SPLIT-MEMO "<split:memo>")
+(define SPLIT-VALUE "<split:value>")
+(define SPLIT-QUANTITY "<split:quantity>")
+(define SPLIT-ACCOUNT-ID "<split:account type=\"guid\">")
+
+
 ;;------------------
 ;;  IMPORT HELPERS
 ;;------------------
@@ -91,7 +102,7 @@ main repo object.
     (element-value line)))
   
 ;;-------------------
-;; FACTORY FUNCTIONS
+;; IMPORT FUNCTIONS
 ;;------------------
 
 ;; read an account from the file and return it
@@ -116,6 +127,45 @@ main repo object.
           (act-loop (next-line in)))))    
     account))
 
+;; read a single split from the file and return it
+(define (import-single-split in)
+  (let ([split (make-object split%)])
+    (let split-loop ([line (next-line in)])
+      (if (equal? line SPLIT-END)
+          split
+          (block
+           (let ([value (element-value line)])
+             (cond
+               [(string-prefix? line SPLIT-ID)
+                (send split set-id! value)]
+               [(string-prefix? line SPLIT-VALUE)
+                (send split set-value! value)]
+               [(string-contains? line SPLIT-QUANTITY)
+                 (send split set-quantity! value)]
+               [(string-contains? line SPLIT-MEMO)
+                 (send split set-memo! value)]
+               [(string-prefix? line SPLIT-ACCOUNT-ID)
+                (send split set-account-id! value)]))
+           (split-loop (next-line in)))))
+    ;;(printf "IMPORTED split:: ~a~%" (send split as-string))
+    split))
+
+;; import individual splits from split section in file
+(define (import-all-splits in)
+  ;; on entry, we just read the start of all splits 
+  ;; the next line is the start of single split, and we'll
+  ;; be handled/ignored by the import-single-split function
+  (let ([splits '()])
+    (let split-loop ([line (next-line in)])
+      (if (equal? line ALL-SPLITS-END)
+          splits
+          (block
+           ;(displayln "--- IMPORT A SPLIT:")
+           (set! splits (cons (import-single-split in) splits))
+           (split-loop (next-line in)))))
+    splits))
+    
+
 ;; read a transaction from the file and return it
 (define (import-transaction in)
   (let ([transaction (make-object transaction%)])
@@ -130,10 +180,9 @@ main repo object.
                [(string-prefix? line TRANSACTION-DATE-POSTED)
                 (send transaction set-date-posted! (next-line-element-value in))]
                [(string-contains? line TRANSACTION-ID)
-                 (send transaction set-id! value)]))
-               ;; TODO               
-               ;;[(string-prefix? line SPLITS-BEGIN)
-               ;; (send transaction add-splits (import-splits in))]))
+                 (send transaction set-id! value)]
+               [(string-prefix? line ALL-SPLITS-START)
+                 (send transaction set-splits! (import-all-splits in))]))
            (tran-loop (next-line in)))))
     ;(printf "IMPORTED transaction ~a~%" (send transaction get-id))
     transaction))
@@ -177,7 +226,22 @@ main repo object.
 ;; MODIFIES gnucash-data
 ;; no return(define (build-metadata gnucash-data)
 (define (build-metadata gnucash-data)
-  (account-metadata gnucash-data))
+  (account-metadata gnucash-data)
+  (link-split-account-transaction gnucash-data))
+
+
+;; add matching transaction to account, account to split (not just id)
+;; template transactions exit for accounts that were deleted - skip them
+(define (link-split-account-transaction gnucash-data)
+  (for ([transaction (send gnucash-data get-list-transactions)])
+    (for ([split (send transaction get-splits)])
+      (let* ([account-id (send split get-account-id)]
+             [account (send gnucash-data account-by-id account-id)])
+        (cond [(not (void? account))
+               (block
+                (send split set-account! account)
+                (send account add-transaction! transaction))])))))
+             
 
 ;; build metadata for accounts
 ;; eg. link to parent object using id from file,
@@ -236,21 +300,34 @@ main repo object.
 ;;   DEMO
 ;; ----------
 
+
+(define (display-all-trans-for-bmo-mastercard gnucash-data)
+    (let ([account (send gnucash-data account-by-name "BMO Mastercard")])
+      (displayln "ALL TRANSACTIONS IN 'BMO Mastercard'")
+      (displayln "------------------------------------")
+      (display-all-transactions-in-account account)))
+
+
 (define (demo)
   (displayln "----------------------------")
   (displayln "         DEMO               ")
   (displayln "----------------------------")
-  (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
-  ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
+  ;(define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
+  (define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
   (print-overview gnucash-data)
   (displayln "----------------------------")
-  (printf "parent of first account: ~a~%" (send (third (send gnucash-data accounts-sorted-by-name)) get-name))  
   ;(display-all-accounts gnucash-data )
-  (display-all-transactions gnucash-data)
+  (define first-tran (first (send gnucash-data get-list-transactions)))
+  (displayln first-tran)
+  (displayln (send first-tran as-string))
+  ;(let ([tran (first (send gnucash-data get-list-transactions))])
+  ;  (displayln (send tran as-string)))
+  ;(displayln (send  as-string))
+  ;(display-all-transactions gnucash-data)
+  (display-all-trans-for-bmo-mastercard gnucash-data)
   (displayln ""))
 
 (demo)
-
 
 #|
 (define main-frame (new frame% [label "My GnuCash"]
