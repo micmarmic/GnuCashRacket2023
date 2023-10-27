@@ -51,6 +51,13 @@ main repo object.
 (define SPLIT-QUANTITY "<split:quantity>")
 (define SPLIT-ACCOUNT-ID "<split:account type=\"guid\">")
 
+(define COMMODITY-START "<gnc:commodity version=\"2.0.0\">")
+(define COMMODITY-END "</gnc:commodity>")
+(define COMMODITY-ID "<cmdty:id>")
+(define COMMODITY-NAME "<cmdty:name>")
+(define COMMODITY-FRACTION "<cmdty:fraction>")
+(define COMMODITY-SPACE "<cmdty:space>")
+
 
 ;;------------------
 ;;  IMPORT HELPERS
@@ -105,6 +112,27 @@ main repo object.
 ;; IMPORT FUNCTIONS
 ;;------------------
 
+;; read a commodity from the file and return it
+(define (import-commodity in)
+  (let ([commodity (make-object commodity%)])
+    ;(displayln (length *accounts*))
+    (let act-loop ([line (next-line in)])
+      (if (equal? line COMMODITY-END)
+          commodity
+          (block
+           (let ([value (element-value line)])
+             (cond
+               [(string-prefix? line COMMODITY-NAME)
+                (send commodity set-name! value)]
+               [(string-prefix? line COMMODITY-ID)
+                (send commodity set-id! value)]
+               [(string-contains? line COMMODITY-FRACTION)
+                (send commodity set-fraction! value)]
+               [(string-prefix? line COMMODITY-SPACE)
+                (send commodity set-space! value)]))
+          (act-loop (next-line in)))))    
+    commodity))
+
 ;; read an account from the file and return it
 (define (import-account in)
   (let ([account (make-object account%)])
@@ -115,7 +143,6 @@ main repo object.
           (block
            (let ([value (element-value line)])
              (cond
-               [(equal? line ACCOUNT-END) '()]
                [(string-prefix? line ACCOUNT-NAME)
                 (send account set-name! value)]
                [(string-prefix? line ACCOUNT-PARENT-ID)
@@ -214,6 +241,7 @@ main repo object.
 (define (dispatch-line gnucash-data line in)
   (cond
     [(equal? line ACCOUNT-START) (send gnucash-data add-account! (import-account in))]
+    [(equal? line COMMODITY-START) (send gnucash-data add-commodity! (import-commodity in))]
     [(equal? line TRANSACTION-START) (send gnucash-data add-transaction! (import-transaction in))]))
 
 
@@ -305,26 +333,27 @@ main repo object.
     (let ([account (send gnucash-data account-by-name "BMO Mastercard")])
       (displayln "ALL TRANSACTIONS IN 'BMO Mastercard'")
       (displayln "------------------------------------")
-      (display-all-transactions-in-account account)))
+      (display-all-transactions-all-splits-in-account account)))
 
 
 (define (demo)
   (displayln "----------------------------")
   (displayln "         DEMO               ")
   (displayln "----------------------------")
-  ;(define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
-  (define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
+  (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
+  ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
   (print-overview gnucash-data)
   (displayln "----------------------------")
   ;(display-all-accounts gnucash-data )
   (define first-tran (first (send gnucash-data get-list-transactions)))
   (displayln first-tran)
-  (displayln (send first-tran as-string))
+  ;(displayln (send first-tran as-string-single-line))
   ;(let ([tran (first (send gnucash-data get-list-transactions))])
   ;  (displayln (send tran as-string)))
   ;(displayln (send  as-string))
   ;(display-all-transactions gnucash-data)
-  (display-all-trans-for-bmo-mastercard gnucash-data)
+  (display-all-commodities gnucash-data)
+  ;(display-all-trans-for-bmo-mastercard gnucash-data)
   (displayln ""))
 
 (demo)

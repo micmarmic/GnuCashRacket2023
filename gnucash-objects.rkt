@@ -2,9 +2,9 @@
 (require rackunit)
 (require racket/block)
 
-(provide gnucash-data% account% transaction% split%
-         print-overview display-all-accounts display-all-transactions
-         display-all-transactions-in-account)
+(provide gnucash-data% account% transaction% split% commodity%
+         print-overview display-all-accounts display-transactions-all-splits
+         display-all-transactions-all-splits-in-account display-all-commodities)
 
 
 ;; --------------------------------------------
@@ -17,6 +17,7 @@
   (class object%
     (super-new)
     (field [root-account void] [accounts-by-name (make-hash)] [accounts-by-id (make-hash)]
+           [commodities-by-name (make-hash)]
            [transactions-by-id (make-hash)] [file-path ""])
 
     ;; setters-getters
@@ -27,6 +28,7 @@
 
     (define/public (num-accounts) (length (hash-values accounts-by-id)))
     (define/public (num-transactions) (length (hash-values transactions-by-id)))
+    (define/public (num-commodities) (length (hash-values commodities-by-name)))
 
     (define/public (get-list-transactions) (hash-values transactions-by-id))
     
@@ -36,6 +38,12 @@
           (block
            (hash-set*! accounts-by-name (send account get-name) account)
            (hash-set*! accounts-by-id (send account get-id) account))))
+    
+    (define/public (add-commodity! commodity)
+      (hash-set*! commodities-by-name (send commodity get-id) commodity))
+
+    (define/public (all-commodities-by-name)
+      (sort (hash-values commodities-by-name) commodity-name<?))
     
     (define/public (add-transaction! transaction)
       (if (void? transaction)
@@ -66,11 +74,17 @@
         (display "ERROR! account is void!!!")
         (displayln (send act as-string)))))
 
-(define (display-all-transactions gnucash)
+(define (display-transactions-all-splits gnucash)
   (for ([tran (send gnucash get-list-transactions)])
     (if (void? tran)
         (display "ERROR! transaction is void!!!")
-        (displayln (send tran as-string)))))
+        (displayln (send tran as-string-all-splits)))))
+
+(define (display-transactions-single-line gnucash)
+  (for ([tran (send gnucash get-list-transactions)])
+    (if (void? tran)
+        (display "ERROR! transaction is void!!!")
+        (displayln (send tran as-string-single-line)))))
 
 
 (define (print-overview gnucash)
@@ -81,6 +95,7 @@
   (printf "File path: ~a~%" (send gnucash get-file-path))
   (printf "Number of accounts: ~a~%" (send gnucash num-accounts))
   (printf "Number of transactions: ~a~%" (send gnucash num-transactions))
+  (printf "Number of commodities: ~a~%" (send gnucash num-commodities))
   (printf "(Root account has id '~a'~%" (send (send gnucash get-root-account) get-id))
   (displayln ""))
 
@@ -140,7 +155,7 @@
     (define/public (get-splits) splits)
     (define/public (set-splits! list-splits) (set! splits list-splits))
       
-    (define/public (as-string)
+    (define/public (as-string-all-splits)
       (let* ([result (format "Date:~a Desc:~a Id: ~a~ (~a splits)%"
                              date-posted description id (num-splits))])
         (if (void? splits)
@@ -149,9 +164,56 @@
             (for ([split splits])
               (set! result (string-append result "\n   " (send split as-string)))))
         result))
-
+    #|
+    (define/public (as-string-single-line)
+      (let ([other-account
+             (if (void? splits)
+                 (set! result (string-append result "\n" "NO SPLITS"))
+                 ;;(set! result (string-append result "   \n" "asplit")))
+                 (for ([split splits])
+              (set! result (string-append result "\n   " (send split as-string)))))
+        result))
+|#
 ))
     
+
+;; ----------------
+;; CLASS commodity%
+;; ----------------
+
+;; A commodity from the GnuCash file
+(define commodity%
+  (class object%
+    (super-new)
+    (field [id ""] [name ""] [space ""] [fraction ""])
+
+    (define/public (set-name! arg-name) (set! name arg-name))
+    (define/public (set-space! arg-space) (set! space arg-space))
+    (define/public (set-fraction! arg-fraction) (set! fraction arg-fraction))
+    (define/public (set-id! arg-id) (set! id arg-id))
+    
+    (define/public (get-id) id)
+    (define/public (get-name) name)
+    (define/public (get-space) space)
+    (define/public (get-fraction) fraction)
+    
+
+    (define/public (as-string)
+      (format "Name:~a Space: ~a Fraction:~a Id: ~a" name space fraction id))
+  ))
+    
+
+;; Functions with commodity% as arg
+;; -----------------------------------
+
+;; display all commodities
+;; in: gnucash-data
+;; out: standard output
+(define (display-all-commodities gnucash-data)
+  (block
+   (printf "COMMODITIES ~a~%" (send gnucash-data num-commodities))   
+   (for ([commodity (send gnucash-data all-commodities-by-name)])
+    (displayln (send commodity as-string)))))
 
 ;; ----------------
 ;; CLASS account%
@@ -201,15 +263,16 @@
 ;; -----------------------------------
 ;; Functions with account% as arg
 ;; -----------------------------------
-(define (display-all-transactions-in-account account)
+(define (display-all-transactions-all-splits-in-account account)
   (block
    (printf "DEBUG ACCOUNT: ~a~%" (send account get-name))
    (printf "NUM TRANSACTIONS: ~a~%" (send account num-transactions))   
    (for ([transaction (send account transactions-sorted-by-date)])
-    (displayln (send transaction as-string)))))
+    (displayln (send transaction as-string-all-splits)))))
 
 ;;-----------------------
 ;;  HELPERS FOR SORTING
+;;  * use 'account get-sort-name' for sorting *
 ;;-----------------------
 
 ;; list of chars to replace in lcase-no-accents
@@ -223,6 +286,9 @@
         
 (define (account-name<? a1 a2)
   (string<? (send a1 get-sort-name) (send a2 get-sort-name)))
+
+(define (commodity-name<? a1 a2)
+  (string<? (lcase-no-accents (send a1 get-name)) (lcase-no-accents (send a2 get-name))))
 
 (define (transaction-date<? t1 t2)
   (string<? (send t1 get-date-posted) (send t2 get-date-posted)))
