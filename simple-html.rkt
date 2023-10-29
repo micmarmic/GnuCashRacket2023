@@ -73,7 +73,7 @@ TODO: MODULE HEADER
 ;;               like "blog-post error" - this functions just inserts it in class="HERE"
 ;; content: form with stuff to insert in element; strings of forms that evaluate to string
 ;; #:new-line: add a newline 'before, 'none, 'before-after the element to make the output readable
-(define (element name class-values content #:new-line new-line)
+(define (element->html name class-values content #:new-line new-line)
   (let ([line-breaks (cond [(equal? new-line 'before-after) (list "\n" "\n")]
                            [(equal? new-line 'before) (list "\n" "")]
                            [(equal? new-line 'after) (list "" (string-append "\n"))]
@@ -94,85 +94,52 @@ TODO: MODULE HEADER
 ;; format is " class=\"class code passed in class-code form\"
 ;; the caller should can check the return and ignore that last element i
 ;; to pass a class to the element, include a (gen-call "whatever") in the content
-(define (element2 name content #:new-line new-line)
-  ;(displayln (string-append "in element2 - name: " name " content:" (~a content)))
-  (let* ([len (length content)]
-         [penult (if (> len 2) (list-ref content (- len 2)) "")])    
-         (if (equal? 'class penult)
-             (block
-              ;(printf "pen: ~a~%" penult)
-              (let* ([values (apply string-append (drop-right content 2))]
-                     [class-names (last content)])
-                (element name class-names values #:new-line new-line)))
-             (block
-              ;(displayln (string-append "in element2 - no class:" (~a content) " penult: " (~a penult)))
-              (element name "" content #:new-line new-line)))))
+(define (element-class->html name content #:new-line new-line)
+  ;(displayln (string-append "in element-class->html - name: " name " content:" (~a content)))
+  (let* ([len (length content)])
+    (if (equal? 'class (first content))
+        (let* ([values (apply string-append (drop content 2))]
+               [class-names (second content)])
+          (element->html name class-names values #:new-line new-line))
+        (element->html name "" content #:new-line new-line))))
 
+;; -------------
+;; HTML ELEMENTS
+;; -------------
 
+;; REMARKS: 1) You can add a css class to any element
+;;             just add 'class "classname" at the end of the content
+;;             (tagname "some content" 'class "class-winner")
+;;          2) You can nest elements (p (b "hello") " world")
 
+;; HTML strong
+;; to add a css class, add 'class "classnames at then of args
+;; (strong "hello") (strong "hello" 'class "red")
+(define strong
+  (lambda content
+    (element->html "strong" "" content  #:new-line 'none)))
 
-#|
-REMARK RE.SPECIFYING CLASSES
-
-Calls to create HTML elements have variable numbers of arguments; to specify
-the class attribute for the element, we cannot use a named or key parameters.
-We offer a mixed approach to solve this:
-* 
-
-|#
-
-(define (fun xs #:key key)
-  (first xs))
-
-;; HTML paragraph - simple version, no class (redundant?)
+;; HTML paragraph
+;; to add a css class, add 'class "classnames at then of args
+;; (p "hello") (p "hello" 'class "important")
 (define p
   (lambda content
-    (element "p" "" content #:new-line 'after)))
-
-(define b
-  (lambda content
-    (element "b" "" content  #:new-line 'none)))
-
-(define p2
-  (lambda content
-    ;(printf "in p2 - content: ~a~%" content)
-    (element2 "p" content #:new-line 'after)))
-;(displayln (p2 "Hello " (b "World") "!" 'class "another bye"))
-
+    (element-class->html "p" content #:new-line 'after)))
 
 
 (define h1
   (lambda content
-    (element "h1" "" content  #:new-line 'after)))
+    (element-class->html "h1" content  #:new-line 'none)))
 
 (define h2
   (lambda content
-    (element "h2" "" content  #:new-line 'after)))
+    (element-class->html "h2" content  #:new-line 'none)))
 
 
 (define div
   (lambda content
-    (element "div" "" content  #:new-line 'before-after)))
+    (element-class->html "div" content  #:new-line 'before-after)))
 
-(define div2
-  (lambda content
-    (element2 "div" content  #:new-line 'before-after)))
-
-
-(define p-c
-  (lambda class-content
-    (let ([class-values (first class-content)]
-          [rest-code (content->string (rest class-content))])
-    (format "<p class=\"~a\">~a</p>~%" class-values rest-code))))
-
-
-(define div-c
-  (lambda class-content
-    (let ([class-values (first class-content)]
-          [rest-code (content->string (rest class-content))])
-      (printf "rest code ~a~%" rest-code)
-      (format "<div class=\"~a\">~%~a</div>~%" class-values rest-code))))
-    
     ;(element-c (cons "div" class-content))))
 
 
@@ -183,13 +150,14 @@ We offer a mixed approach to solve this:
 ;(displayln (p2 "Hello " (b "World") "!" 'class "another bye"))
 ;(displayln (div (p "Hello " (b "World") "c")))
 (displayln "--------------------")
-(displayln (div2 (p2 "in a  " (b "DIV") "!" 'class "p-class")))
+;(displayln (div (p "in a  " (strong "DIV") "!" 'class "p-class")))
 (displayln "--------------------")
-(displayln (div2
-            (div2 (p2 "now in a  " (b "NESTED DIV") "!" 'class "p-class"))
-            (div2 (p2 "another paragraph in another nested div, no class"))))
+(displayln (div
+            (div (p 'class "p-class" "now in a  " (strong "NESTED DIV") "!"))
+            (div (p "another paragraph in another nested div, no class"))))
 (displayln "--------------------")
-(displayln (p2 (b "bold first") " then normal"))
+(displayln (p (strong "bold first") " then normal"))
+(displayln (h1 "TITLE"))
 ;(displayln (div-c "important"
 ;                  (p "Hello " (b "World") "!")
 ;                  (p "I am " (b "here") ".")))
