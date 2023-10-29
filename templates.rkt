@@ -1,11 +1,15 @@
 #lang racket
-(require racket/block) ; for testing - remove
+(require rackunit)
 
-(provide render-template)
+(provide render-template filepath->string)
 
 #|
-The template.rkt emulates the functions in various web
-framework libraries
+The template.rkt provides functions to support working with tempaltes.
+
+(render-template filepath hash-key-value-pairs) replaces %markers% with values.
+render-template doesn't currently support any other functionality.
+
+filepath->string can be used to load a css file or javascript file.
 |#
 
 ;; given the path to a template and a dict of tag - values
@@ -14,18 +18,11 @@ framework libraries
 ;; tags: list of pairs or string tag and string values
 ;; example: ("title" "Home page" "css" "/css/main.css")
 (define (render-template path tags)
-  (displayln "allo from render-template")
-  (for ([key (hash-keys tags)])
-    (let ([value (hash-ref tags key)])
-      (printf "Key: ~a Value: ­~a~%" key value)))
-  (let ([template (read-template-file path)])
-    (displayln "Template")
+  (let ([template (filepath->string path)])
     (replace-tags-with-values template tags)))
 
-
-;; return file contents as string
-;(define (read-file path) (format "Template will be read from '~a'~%" path))
-(define (read-template-file path)
+;; load file into a string
+(define (filepath->string path)
    (call-with-input-file path    
     (lambda (in)
       (let loop ([line (read-line in 'any)]
@@ -33,11 +30,12 @@ framework libraries
         (cond
           [(eof-object? line) file-contents]
           [ else
-            (block
-              (display line)
-              (loop (read-line in 'any) (string-append file-contents line "\n")))])
-        ))))
+              (loop (read-line in 'any) (string-append file-contents line "\n"))])))))
 
+;; given a string, replace all %markers% with the matching value in the tags-values hash or pairs
+;; in the values of the pairs, just specify the marker name
+;; in the input, surround the marker with %
+;; input: "My name is %name%"; tags-values: (("name" . "Bob")); result: "My name is Bob"
 (define (replace-tags-with-values input tags-values)
   (let* ([result input])
     (hash-for-each tags-values
@@ -48,13 +46,15 @@ framework libraries
                            (set! result (string-replace result marker value))))))
     result))
                 
+;; ----------
+;; UNIT TESTS
+;; ----------
+;;(define test-directory "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\")
+(define tests-directory (build-path (current-directory) "tests\\"))
+(define test-template-path-1 (build-path tests-directory "test-template-1.html"))
+(check-equal? (render-template test-template-path-1 #hash(("title" . "Hello Title") ("header" . "This is the Header")))
+              "<title>Hello Title</title>\n<h1>This is the Header</h1>\n")
+(check-equal? (replace-tags-with-values "%title% %body%" #hash(("title" . "YES title") ("body" . "YES body"))) "YES title YES body" )
 
-;; ----------------------
-;; DEMO (uncomment lines)
-;; ----------------------
-(define TEMPLATES-DIRECTORY "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\templates\\")
-(define test-template-path-1 (string-append TEMPLATES-DIRECTORY "test-template1.html"))
-test-template-path-1
-    
-(render-template test-template-path-1 #hash(("title" . "Home") ("header" . "This is the Header")))
-(replace-tags-with-values "%title% %body%" #hash(("title" . "YES title") ("body" . "YES body")))
+(printf "Current directory: ~a~%" (current-directory))
+(printf "Tests directory: ~a~%" tests-directory)
