@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- include jquery before bootstrap -->
+    <script src="https://code.jquery.com/jquery-2.1.3.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/css/bootstrap.min.css">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.3/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="custom.css">
+    <title>Examples of Bootstrap 4.0 List Styles</title>
+</head>
+<body style="background-color: #99ccff">
+<div class="container py-5">
+    <!-- For demo purpose -->
+    <header class="text-center text-dark">
+        <h1 class="display-4">Bootstrap list</h1>
+		<h2 class="display-6">This is loaded from a local folder by the Racket web server.</h2>
+        <p class="lead mb-0 font-italic">A collection of list variants using Bootstrap 4.</p>
+        <p class="font-italic">Snippet By
+            <a href="https://bootstrapious.com" class="text-white">
+                <u>Bootstrapious</u>
+            </a>
+        </p>
+    </header>
+
+    <div class="row py-5">
+        <div class="col-lg-7 mx-auto">
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <h4 class="mb-4">Unstyled list</h4>
+                    <!-- Unstyled list -->
+                    <ul class="list-unstyled">
+                        <li class="mb-2">Lorem ipsum dolor sit amet.</li>
+                        <li class="mb-2">Consectetur adipisicing elit.</li>
+                        <li class="mb-2">Sed do eiusmod tempor incididunt.</li>
+                        <li class="mb-2">Ut labore et dolore magna aliqua. </li>
+                        <li class="mb-2">Exercitation ullamco laboris nisi.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <h4 class="mb-4">Unordered list</h4>
+                    <!-- Unordered list -->
+                    <ul>
+                        <li class="mb-2">Lorem ipsum dolor sit amet.</li>
+                        <li class="mb-2">Consectetur adipisicing elit.</li>
+                        <li class="mb-2">Sed do eiusmod tempor incididunt.</li>
+                        <li class="mb-2">Ut labore et dolore magna aliqua. </li>
+                        <li class="mb-2">Exercitation ullamco laboris nisi.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <h4 class="mb-4">Ordered list</h4>
+                    <!-- Ordered list -->
+                    <ol>
+                        <li class="mb-2">Lorem ipsum dolor sit amet.</li>
+                        <li class="mb-2">Consectetur adipisicing elit.</li>
+                        <li class="mb-2">Sed do eiusmod tempor incididunt.</li>
+                        <li class="mb-2">Ut labore et dolore magna aliqua. </li>
+                        <li class="mb-2">Exercitation ullamco laboris nisi.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <h4 class="mb-4">Ordered list with styled numbers</h4>
+                    <!-- Ordered list with custom style -->
+                    <ol class="custom-numbers">
+                        <li class="mb-2">Lorem ipsum dolor sit amet.</li>
+                        <li class="mb-2">Consectetur adipisicing elit.</li>
+                        <li class="mb-2">Sed do eiusmod tempor incididunt.</li>
+                        <li class="mb-2">Ut labore et dolore magna aliqua. </li>
+                        <li class="mb-2">Exercitation ullamco laboris nisi.</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <h4 class="mb-4">Inline list</h4>
+                    <!-- Inline list -->
+                    <ul class="list-inline">
+                        <li class="list-inline-item">First item</li>
+                        <li class="list-inline-item">Second item</li>
+                        <li class="list-inline-item">Third item</li>
+                        <li class="list-inline-item">Fourth item </li>
+                        <li class="list-inline-item">Fifth item</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <h4 class="mb-4">List with bullets</h4>
+                    <!-- List with bullets -->
+                    <ul class="list-bullets">
+                        <li class="mb-2">Lorem ipsum dolor sit amet.</li>
+                        <li class="mb-2">Consectetur adipisicing elit.</li>
+                        <li class="mb-2">Sed do eiusmod tempor incididunt.</li>
+                        <li class="mb-2">Ut labore et dolore magna aliqua. </li>
+                        <li class="mb-2">Exercitation ullamco laboris nisi.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card shadow mb-4">
+                <div class="card-body p-5">
+                    <!-- List with icons -->
+                    <h4 class="mb-4">List with icons</h4>
+                    <ul class="list-unstyled list pl-5">
+                        <li class="mb-3 d-flex align-items-center"><i class="fa fa-flask mr-3 text-primary"></i>Lorem ipsum dolor sit amet.</li>
+                        <li class="mb-3 d-flex align-items-center"><i class="fa fa-hourglass-end mr-3 text-primary"></i>Consectetur adipisicing elit.</li>
+                        <li class="mb-3 d-flex align-items-center"><i class="fa fa-inbox mr-3 text-primary"></i>Sed do eiusmod tempor incididunt.</li>
+                        <li class="mb-3 d-flex align-items-center"><i class="fa fa-rocket mr-3 text-primary"></i>Ut labore et dolore magna aliqua. </li>
+                        <li class="mb-3 d-flex align-items-center"><i class="fa fa-trophy mr-3 text-primary"></i>Exercitation ullamco laboris nisi.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+</body></html>
+<!-- if you want the icons, look into <script async src="/assets/js/vendor/bootstrap.bundle.min.js> as here: script async src="/assets/js/vendor/bootstrap.bundle.min.js">

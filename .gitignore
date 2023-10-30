@@ -1,5 +1,6 @@
 .DS_Store
 compiled/
+bootstrap.4.0.0/
 /doc/
 *~
 *.bak
