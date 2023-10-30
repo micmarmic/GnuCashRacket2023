@@ -18,16 +18,17 @@ TODO: MODULE HEADER
 ;; This is a simple library: the class is applied at the <ul> level,
 ;; use <span> in the data-rows elements to apply additional formatting.
 ;; DEPENDS on INDENT to add a minimum of code indentation in the HTML output.
-(define (ulist css-class data-rows)
-  (let* ([class-code (if (equal? css-class "") "" (format " class=\"~a\"" css-class))]
-         [ul-open-line (format "~a<ul~a>~%" INDENT class-code)]
+(define (ulist u-css-class li-css-class data-rows)
+  (let* ([u-class-code (if (equal? u-css-class "") "" (format " class=\"~a\"" u-css-class))]
+         [li-class-code (if (equal? li-css-class "") "" (format " class=\"~a\"" li-css-class))]
+         [ul-open-line (format "~a<ul~a>~%" INDENT u-class-code)]
          [ul-close-line (format "~a</ul>~%" INDENT)])
    (let loop ([data data-rows]
               [result ul-open-line])
      (cond [(null? data) (string-append result ul-close-line)]
            [else (loop
                   (rest data)
-                  (string-append result (format "~a~a<li>~a</li>~%" INDENT INDENT (first data))))]))))
+                  (string-append result (format "~a~a<li~a>~a</li>~%" INDENT INDENT li-class-code (first data))))]))))
      
 ;; -----------------
 ;; SAVE HTML TO FILE
@@ -128,6 +129,10 @@ TODO: MODULE HEADER
 
 
 (define h1
+  (lambda content
+    (element-class->html "h1" content  #:new-line 'none)))
+
+(define li
   (lambda content
     (element-class->html "h1" content  #:new-line 'none)))
 
@@ -253,3 +258,4 @@ TODO: MODULE HEADER
 (check-equal? (content->string '("a" "B")) "aB")
 (define test-mixed-list  '("a" (format "~a" (+ 1 2)) "B"))
 (check-equal? (content->string test-mixed-list) "a3B")
+(ulist "list-style" "li-style" '(1 2 3 4))

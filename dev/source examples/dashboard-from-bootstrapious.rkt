@@ -20,7 +20,9 @@
   (http-response "Hello"))
 
 (define (dashboard request)
-  (http-response (include-template "templates/My-Dashboard.html")))
+  (let ([clients (list (list "Smith" "Mark") (list "Simpson" "Lou"))])
+    (include-template "templates/My-Dashboard.html")
+    (http-response (include-template "templates/My-Dashboard.html"))))
 
 ;; URL routing table (URL dispatcher).
 (define-values (dispatch generate-url)
@@ -44,7 +46,6 @@
    #:servlet-regexp #rx""))
 
 (my-start-server)
+
 ;(define thing "THING")
 ;(include-template "templates/simple-docs-chap-7.2.html")
-
-(include-template "templates/My-Dashboard.html");
