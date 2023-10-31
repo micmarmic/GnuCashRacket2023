@@ -8,6 +8,7 @@
          "gnucash-objects.rkt")
 
 (define %gnucash-data% (void)) ; global set in (start-app)
+(define %base-template-path% "templates/base-template.html")
 
 ;; --------------
 ;; CONFIG STRINGS
@@ -28,6 +29,11 @@ Views use (require web-server/templates).
 Images can be served statically using http-response-image.
 
 |#
+
+(define (response-200-base-template page-title main-content-heading main-content)
+  (let ([html (include-template "templates/base-template.html")])
+    (http-response-200 html)))
+
 
 (define (http-response-200 content)  ; The 'content' parameter should be a string.
   (response/full
@@ -62,8 +68,11 @@ Images can be served statically using http-response-image.
       (list (send account get-name) (string-append "/account/" (send account get-id))))
     (map name-url (send %gnucash-data% accounts-sorted-by-name)))
   ;; TODO - current demo with clients and My-Dashboard
-  (let ([accounts (accounts-names-urls)])
-    (http-response-200 (include-template "templates/account-list.html"))))
+  (let* ([page-title "Accounts | GnuCash App"]
+        [main-content-heading "Accounts"]
+        [accounts (accounts-names-urls)]
+        [main-content (include-template "templates/account-list.html")])
+    (response-200-base-template page-title main-content-heading main-content)))
 
 
 
