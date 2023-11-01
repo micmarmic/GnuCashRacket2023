@@ -16,6 +16,19 @@
 ; (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
+(struct parent (name children))
+(struct child (name))
+(define parents
+  (list
+   (parent "Josie"(list (child "Bill") (child "Linus")))
+   (parent "Jack"(list (child "Sam") (child "Shelly")))))
+#|
+(for ([parent parents])
+  (printf "~a~%" (parent-name parent))
+  (for ([child (parent-children parent)])
+    (printf "   ~a~%" (child-name child))))
+|#      
+
 
 #|
 Basic webapp based on racket web-server.
@@ -74,28 +87,86 @@ Images can be served statically using http-response-image.
         [main-content (include-template "templates/account-list.html")])
     (response-200-base-template page-title main-content-heading main-content)))
 
+#|
+;; don't know how to nest a loop in a template; do it here
+(define (ul-children children)
+  (if (null? children)
+      "<p><strong>NO PARENTS</strong></p>"
+      (let loop ([chlds children] [html ""])
+        (if (null? chlds)
+            html
+            (loop
+             (rest chlds)
+             (string-append html "\n"
+                           (child-name (first chlds))))))))
+|#
 
+(define (ul-children parent)
+  (let ([children (parent-children parent)])    
+    (if (null? children)
+        "<p>NO CHILDREN</p>"
+        (include-template "templates/demo-children.html"))))
+                                                         
+
+(define (ul-parents parents)
+  (include-template "templates/demo-parents.html"))
+                            
+#|
+(define (ul-parents)
+  (if (null? arg-parents)
+      "<p><strong>NO PARENTS</strong></p>"
+      (let loop ([parents arg-parents] [html ""])
+        (if (null? parents)
+            html
+            (loop
+             (rest parents)
+             (string-append html
+                            (format "<h1>~a</h1>~%" (parent-name (first parents)))
+                            (ul-children (parent-children (first parents)))))))))
+|#
+
+(define (parents-demo request)
+  (let* ([page-title "Parents | GnuCash App"]
+        [main-content-heading "Parents"]
+        [main-content (ul-parents parents)])
+    (response-200-base-template page-title main-content-heading main-content)))
 
 (define (hello-root request)
-  (http-response-200 "Hello"))
+  (let* ([page-title "Home | GnuCash App"]
+        [main-content-heading "Home"]
+        [main-content ""])
+    (response-200-base-template page-title main-content-heading main-content)))
 
+#|
 (define (dashboard request)
   (let ([clients (list (list "Smith" "Mark") (list "Simpson" "Lou"))])
     (include-template "templates/My-Dashboard.html")
     (http-response-200 (include-template "templates/My-Dashboard.html"))))
+|#
+
+(define (dashboard request)
+  (let* ([page-title "Dashboard | GnuCash App"]
+        [main-content-heading "Dashboard"]
+        [clients (list (list "Smith" "Mark") (list "Simpson" "Lou"))]
+        [main-content (include-template "templates/My-Dashboard.html")])
+    (response-200-base-template page-title main-content-heading main-content)))
 
 (define (generic-404 request)
   (let ([request-url (url->string (request-uri request))])
      (http-response-404 (format "Cannot dispatch URL: '~a'" request-url))))
 
+;; -----------------------------------
 ;; URL routing table (URL dispatcher).
+;; -----------------------------------
+
 (define-values (dispatch generate-url)
                (dispatch-rules
                 [("account" (string-arg)) account-details]
                 [("accounts") account-list]
-                 [("") hello-root]
-                 [("dashboard") dashboard]
-                 [else generic-404]))
+                [("parents") parents-demo]
+                [("") hello-root]
+                [("dashboard") dashboard]
+                [else generic-404]))
 
 (define (request-handler request)
   (printf "Request path: ~a~%" (url->string (request-uri request)))
