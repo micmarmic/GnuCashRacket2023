@@ -1,0 +1,20 @@
+<div class="table-responsive">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>@(first column-titles)</th>
+                <th>@(second column-titles)</th>
+                <th>@(third column-titles)</th>
+                <th>@(fourth column-titles)</th>
+            </tr>
+        </thead>
+        @in[line lines]{
+        <tr>
+            <td>@(ledger-line-date line)</td>
+            <td>@(ledger-line-memo line)</td>
+            <td>@(ledger-line-amount line)</td>
+            <td>@(ledger-line-balance line)</td>
+        </tr>
+        }
+    </table>
+</div>

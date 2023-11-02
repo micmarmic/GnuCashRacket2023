@@ -5,7 +5,8 @@
          web-server/templates)
 
 (require "gnucash-parser.rkt"
-         "gnucash-objects.rkt")
+         "gnucash-objects.rkt"
+         "views.rkt")
 
 (define %gnucash-data% (void)) ; global set in (start-app)
 (define %base-template-path% "templates/base-template.html")
@@ -41,7 +42,7 @@ Views use (require web-server/templates).
 
 Images can be served statically using http-response-image.
 
-|#
+
 
 (define (response-200-base-template page-title main-content-heading main-content)
   (let ([html (include-template "templates/base-template.html")])
@@ -68,6 +69,7 @@ Images can be served statically using http-response-image.
     (list                ; Content (in bytes) to send to the browser.
       (string->bytes/utf-8 content))))
 
+
 (define (account-details request id)
   (let* ([account (send %gnucash-data% account-by-id id)]
         [account-str (send account as-string)]
@@ -87,6 +89,8 @@ Images can be served statically using http-response-image.
         [main-content (include-template "templates/account-list.html")])
     (response-200-base-template page-title main-content-heading main-content)))
 
+|#
+
 #|
 ;; don't know how to nest a loop in a template; do it here
 (define (ul-children children)
@@ -101,15 +105,7 @@ Images can be served statically using http-response-image.
                            (child-name (first chlds))))))))
 |#
 
-(define (ul-children parent)
-  (let ([children (parent-children parent)])    
-    (if (null? children)
-        "<p>NO CHILDREN</p>"
-        (include-template "templates/demo-children.html"))))
-                                                         
 
-(define (ul-parents parents)
-  (include-template "templates/demo-parents.html"))
                             
 #|
 (define (ul-parents)
@@ -125,17 +121,8 @@ Images can be served statically using http-response-image.
                             (ul-children (parent-children (first parents)))))))))
 |#
 
-(define (parents-demo request)
-  (let* ([page-title "Parents | GnuCash App"]
-        [main-content-heading "Parents"]
-        [main-content (ul-parents parents)])
-    (response-200-base-template page-title main-content-heading main-content)))
-
-(define (hello-root request)
-  (let* ([page-title "Home | GnuCash App"]
-        [main-content-heading "Home"]
-        [main-content ""])
-    (response-200-base-template page-title main-content-heading main-content)))
+(define (test-dispatch request text)
+  (http-response-200 text))
 
 #|
 (define (dashboard request)
@@ -144,16 +131,6 @@ Images can be served statically using http-response-image.
     (http-response-200 (include-template "templates/My-Dashboard.html"))))
 |#
 
-(define (dashboard request)
-  (let* ([page-title "Dashboard | GnuCash App"]
-        [main-content-heading "Dashboard"]
-        [clients (list (list "Smith" "Mark") (list "Simpson" "Lou"))]
-        [main-content (include-template "templates/My-Dashboard.html")])
-    (response-200-base-template page-title main-content-heading main-content)))
-
-(define (generic-404 request)
-  (let ([request-url (url->string (request-uri request))])
-     (http-response-404 (format "Cannot dispatch URL: '~a'" request-url))))
 
 ;; -----------------------------------
 ;; URL routing table (URL dispatcher).
@@ -161,11 +138,12 @@ Images can be served statically using http-response-image.
 
 (define-values (dispatch generate-url)
                (dispatch-rules
-                [("account" (string-arg)) account-details]
-                [("accounts") account-list]
+                [("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
+                [("accounts") (lambda (request) (account-list %gnucash-data% request))]
                 [("parents") parents-demo]
                 [("") hello-root]
                 [("dashboard") dashboard]
+                [("demo-ledger") demo-ledger-line]               
                 [else generic-404]))
 
 (define (request-handler request)
