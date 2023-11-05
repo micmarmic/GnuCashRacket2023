@@ -169,9 +169,9 @@ main repo object.
                [(string-prefix? line SPLIT-ID)
                 (send split set-id! value)]
                [(string-prefix? line SPLIT-VALUE)
-                (send split set-value! value)]
+                (send split set-value! (string->number value))]
                [(string-contains? line SPLIT-QUANTITY)
-                 (send split set-quantity! value)]
+                 (send split set-quantity! (string->number value))]
                [(string-contains? line SPLIT-MEMO)
                  (send split set-memo! value)]
                [(string-prefix? line SPLIT-ACCOUNT-ID)
