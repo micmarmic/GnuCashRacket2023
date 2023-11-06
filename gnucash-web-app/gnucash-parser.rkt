@@ -208,7 +208,8 @@ main repo object.
                [(string-prefix? line TRANSACTION-DESCRIPTION)
                 (send transaction set-description! value)]
                [(string-prefix? line TRANSACTION-DATE-POSTED)
-                (send transaction set-date-posted! (next-line-element-value in))]
+                (send transaction set-date-posted!
+                      (substring (next-line-element-value in) 0 10))]
                [(string-contains? line TRANSACTION-ID)
                  (send transaction set-id! value)]
                [(string-prefix? line ALL-SPLITS-START)
@@ -253,12 +254,13 @@ main repo object.
 ;;   Links and references not explicit in raw data
 ;; -------------------------------------------------
 
-;; main function for building metata
+;; main function for building metadata then clearing global transaction list
 ;; MODIFIES gnucash-data
 ;; no return(define (build-metadata gnucash-data)
 (define (build-metadata gnucash-data)
   (account-metadata gnucash-data)
-  (link-split-account-transaction gnucash-data))
+  (link-split-account-transaction gnucash-data)
+  (send gnucash-data clear-all-transactions))
 
 
 ;; add matching transaction to account, account to split (not just id)

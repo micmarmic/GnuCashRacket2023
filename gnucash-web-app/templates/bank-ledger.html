@@ -1,0 +1,28 @@
+<h2>DEBUG</h2>
+<div class="table-responsive">
+  <table class="table table-striped table-sm">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Description</th>
+        <th>Account</th>
+        <th class="align-items-center">Amount</th>
+        <th class="align-items-center">Total</th>
+        <th class="align-items-center">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      @in[line ledger-lines]{
+      <tr class="@(seventh line)">
+        <!-- ledger-line is a list, values are in order 1st to nth -->
+        <td>@(first line)</td>
+        <td>@(second line)</td>
+        <td>@(third line)</td>
+        <td class="align-items-center">@(fourth line)</td>
+        <td class="align-items-center">@(fifth line)</td>
+        <td class="align-items-center">@(sixth line)</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+</div>

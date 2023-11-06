@@ -14,8 +14,8 @@
 ;; --------------
 ;; CONFIG STRINGS
 ;; --------------
-; (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
-(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
+(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+;(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
 (struct parent (name children))
 (struct child (name))
@@ -137,11 +137,12 @@ Images can be served statically using http-response-image.
 ;; -----------------------------------
 
 (define-values (dispatch generate-url)
-               (dispatch-rules
-                [("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
+               (dispatch-rules               
+                [("account" (string-arg)) (lambda (request string-arg) (bank-ledger-view %gnucash-data% string-arg request))]
+                ;[("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
                 [("accounts") (lambda (request) (account-list %gnucash-data% request))]
                 [("parents") parents-demo]
-                [("") hello-root]
+                [("") (lambda (request) (account-list %gnucash-data% request))]
                 [("dashboard") dashboard]
                 [("demo-ledger") demo-ledger-line]               
                 [else generic-404]))
@@ -155,7 +156,9 @@ Images can be served statically using http-response-image.
   (printf "Loading data file '~a'~%" %path-data-file%) 
   (set! %gnucash-data% (import-gnucash-file %path-data-file%))
   (printf "Loading data complete.~%")
-  (print-overview %gnucash-data%)
+  (printf "Found ~a accounts.~%" (send %gnucash-data% num-accounts))
+  ; REDO account-based, not repo-based (print-overview %gnucash-data%)
+  (send %gnucash-data% clear-all-transactions)
   
   (printf "Launching the web server.~%")
   ;; Start the server.
