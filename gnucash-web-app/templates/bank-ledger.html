@@ -1,4 +1,3 @@
-<h2>DEBUG</h2>
 <div class="table-responsive">
   <table class="table table-striped table-sm">
     <thead>
@@ -13,14 +12,14 @@
     </thead>
     <tbody>
       @in[line ledger-lines]{
-      <tr class="@(ledger-line-color-class line)">
-        <!-- ledger-line is a list, values are in order 1st to nth -->
-        <td>@(ledger-line-date line)</td>
-        <td>@(ledger-line-description line)</td>
-        <td>@(ledger-line-account-name line)</td>
-        <td class="align-items-right">@(ledger-line-value line)</td>
-        <td class="align-items-right">@(ledger-line-total line)</td>
-        <td class="align-items-right">@(ledger-line-balance line)</td>
+      <tr class="@(bank-ledger-line-color-class line)">
+        <!-- bank-ledger-line is a list, values are in order 1st to nth -->
+        <td>@(bank-ledger-line-date line)</td>
+        <td>@(bank-ledger-line-description line)</td>
+        <td>@(bank-ledger-line-account-name line)</td>
+        <td class="align-items-right">@(bank-ledger-line-value line)</td>
+        <td class="align-items-right">@(bank-ledger-line-total line)</td>
+        <td class="align-items-right">@(bank-ledger-line-balance line)</td>
       </tr>
       }
     </tbody>

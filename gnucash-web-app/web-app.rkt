@@ -138,14 +138,13 @@ Images can be served statically using http-response-image.
 
 (define-values (dispatch generate-url)
                (dispatch-rules
-                [("account" (string-arg) (integer-arg)) (lambda (request account-id page-num) (bank-ledger-view %gnucash-data% account-id request page-num))]
-                [("account" (string-arg)) (lambda (request account-id) (bank-ledger-view %gnucash-data% account-id request -1))]
+                [("account" (string-arg) (integer-arg)) (lambda (request account-id page-num) (ledger-view %gnucash-data% account-id request page-num))]
+                [("account" (string-arg)) (lambda (request account-id) (ledger-view %gnucash-data% account-id request 0))]
                 ;[("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
                 [("accounts") (lambda (request) (account-list %gnucash-data% request))]
                 [("parents") parents-demo]
                 [("") (lambda (request) (account-list %gnucash-data% request))]
                 [("dashboard") dashboard]
-                [("demo-ledger") demo-ledger-line]               
                 [else generic-404]))
 
 (define (request-handler request)
@@ -172,10 +171,19 @@ Images can be served statically using http-response-image.
    #:servlet-regexp #rx""))
 
 (start-app)
-#|
 
+#|
 ;; DEVELOPMENT
 (set! %gnucash-data% (import-gnucash-file %path-data-file%))
+(define accounts (send %gnucash-data% accounts-sorted-by-name))
+;(define filtered-accounts (filter (lambda (act)
+;          (member (send act get-type) (list "BOND" "MUTUAL" "STOCK"))) accounts));
+(define filtered-accounts (filter (lambda (act) (send act is-investment?)) accounts))
+(for ([act filtered-accounts])
+  (printf "~a (~a)~%" (send act get-name) (send act get-type)))
+|#
+
+#|
 ;(for ([account (send %gnucash-data% accounts-sorted-by-name)])
 ;  (displayln (send account get-name)))
 (define account-id (send (send %gnucash-data% account-by-name "BMO MasterCard") get-id))
