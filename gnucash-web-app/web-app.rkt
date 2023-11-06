@@ -172,6 +172,21 @@ Images can be served statically using http-response-image.
    #:servlet-regexp #rx""))
 
 (start-app)
+#|
 
-;(define thing "THING")
-;(include-template "templates/simple-docs-chap-7.2.html")
+;; DEVELOPMENT
+(set! %gnucash-data% (import-gnucash-file %path-data-file%))
+;(for ([account (send %gnucash-data% accounts-sorted-by-name)])
+;  (displayln (send account get-name)))
+(define account-id (send (send %gnucash-data% account-by-name "BMO MasterCard") get-id))
+(define request (void))
+(define page-number 0)
+(define %trans-per-page% 10)
+;(define lines (bank-ledger-view %gnucash-data% account-id request page-number))
+
+(define lines (trans-in-account->ledger-lines %gnucash-data% account-id page-number %trans-per-page%))
+(flatten-trans-splits lines)
+;define lines (bank-ledger-view %gnucash-data% account-id request page-number))
+(printf "Length lines: ~a~%" (length lines))
+
+|#

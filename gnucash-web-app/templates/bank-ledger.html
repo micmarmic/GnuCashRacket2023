@@ -13,14 +13,14 @@
     </thead>
     <tbody>
       @in[line ledger-lines]{
-      <tr class="@(seventh line)">
+      <tr class="@(ledger-line-color-class line)">
         <!-- ledger-line is a list, values are in order 1st to nth -->
-        <td>@(first line)</td>
-        <td>@(second line)</td>
-        <td>@(third line)</td>
-        <td class="align-items-center">@(fourth line)</td>
-        <td class="align-items-center">@(fifth line)</td>
-        <td class="align-items-center">@(sixth line)</td>
+        <td>@(ledger-line-date line)</td>
+        <td>@(ledger-line-description line)</td>
+        <td>@(ledger-line-account-name line)</td>
+        <td class="align-items-right">@(ledger-line-value line)</td>
+        <td class="align-items-right">@(ledger-line-total line)</td>
+        <td class="align-items-right">@(ledger-line-balance line)</td>
       </tr>
       }
     </tbody>
