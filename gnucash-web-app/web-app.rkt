@@ -137,8 +137,9 @@ Images can be served statically using http-response-image.
 ;; -----------------------------------
 
 (define-values (dispatch generate-url)
-               (dispatch-rules               
-                [("account" (string-arg)) (lambda (request string-arg) (bank-ledger-view %gnucash-data% string-arg request))]
+               (dispatch-rules
+                [("account" (string-arg) (integer-arg)) (lambda (request account-id page-num) (bank-ledger-view %gnucash-data% account-id request page-num))]
+                [("account" (string-arg)) (lambda (request account-id) (bank-ledger-view %gnucash-data% account-id request -1))]
                 ;[("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
                 [("accounts") (lambda (request) (account-list %gnucash-data% request))]
                 [("parents") parents-demo]
