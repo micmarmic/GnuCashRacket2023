@@ -136,10 +136,15 @@ Images can be served statically using http-response-image.
 ;; URL routing table (URL dispatcher).
 ;; -----------------------------------
 
+(define (get-url request)
+  (url->string (request-uri request)))
+
 (define-values (dispatch generate-url)
                (dispatch-rules
-                [("account" (string-arg) (integer-arg)) (lambda (request account-id page-num) (ledger-view %gnucash-data% account-id request page-num))]
-                [("account" (string-arg)) (lambda (request account-id) (ledger-view %gnucash-data% account-id request 0))]
+                [("account" (string-arg) (integer-arg))
+                 (lambda (request account-id page-num)
+                   (ledger-view %gnucash-data% account-id request page-num (get-url request)))]
+                ;[("account" (string-arg)) (lambda (request account-id) (ledger-view %gnucash-data% account-id request 0))]
                 ;[("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
                 [("accounts") (lambda (request) (account-list %gnucash-data% request))]
                 [("parents") parents-demo]

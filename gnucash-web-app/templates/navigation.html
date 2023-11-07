@@ -1,3 +1,4 @@
+<!-- demo
 <div class="container d-flex align-items-center  justify-content-center">
     <nav aria-label="Pagination"></nav>
     <ul class="pagination">
@@ -11,6 +12,28 @@
         <li class="page-item"><a class="page-link" href="#">3</a></li>
         <li class="page-item">
             <a class="page-link" href="#">Next</a>
+        </li>
+    </ul>
+    </nav>
+</div>
+-->
+
+<div class="container d-flex align-items-center  justify-content-center">
+    <nav aria-label="Pagination"></nav>
+    <ul class="pagination">
+        <li class="@(nav-link-li-class prev-link)">
+            <a class="page-link" href="@(nav-link-href prev-link)" @(nav-link-tab-index prev-link)>@(nav-link-text
+                prev-link)</a>
+        </li>
+        @in[page-link other-links]{
+        <li class="@(nav-link-li-class page-link)">
+            <a class="page-link" href="@(nav-link-href page-link)" )>@(nav-link-text
+                page-link)</a>
+        </li>
+        }
+        <li class="@(nav-link-li-class next-link)">
+            <a class="page-link" href="@(nav-link-href next-link)" @(nav-link-tab-index next-link)>@(nav-link-text
+                next-link)</a>
         </li>
     </ul>
     </nav>
