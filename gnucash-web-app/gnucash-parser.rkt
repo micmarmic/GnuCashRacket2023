@@ -288,7 +288,8 @@ main repo object.
     ; link to parent object
     (for ([act accounts])
       (let ([parent-id (send act get-parent-id)])
-        (cond [(not (equal? "" parent-id))          
+        (cond [(not (equal? "" parent-id))
+             ; set-parent! also adds account as child to that parent
             (send act set-parent! (send gnucash-data account-by-id parent-id))])))
     ; remove templates; yes we loop again
     ; identify root
