@@ -25,10 +25,9 @@
             <a class="page-link" href="@(nav-link-href prev-link)" @(nav-link-tab-index prev-link)>@(nav-link-text
                 prev-link)</a>
         </li>
-        @in[page-link other-links]{
-        <li class="@(nav-link-li-class page-link)">
-            <a class="page-link" href="@(nav-link-href page-link)" )>@(nav-link-text
-                page-link)</a>
+        @in[lnk other-links]{
+        <li class="@(nav-link-li-class lnk)">
+            <a class="page-link" href="@(nav-link-href lnk)" )>@(nav-link-text lnk)</a>
         </li>
         }
         <li class="@(nav-link-li-class next-link)">
