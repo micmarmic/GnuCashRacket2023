@@ -231,13 +231,13 @@ main repo object.
           (let ([value (element-value line)])
             (cond
               [(string-prefix? line PRICE-DATE)
-               (send price set-date! value)]
+               (send price set-date! (substring value 0 10))]
               [(string-prefix? line PRICE-VALUE)
                (send price set-value! (string->number value))]
               [(string-contains? line PRICE-START-COMMODITY)
                (send price set-commodity-id! (import-commodity-id in))])
             (loop (next-line in)))))
-    (printf "~a~%" (send price as-string))
+    ;(printf "~a~%" (send price as-string))
     price))
 
 
@@ -406,6 +406,23 @@ main repo object.
       (display-all-transactions-all-splits-in-account account)))
 
 
+; return the price ON the exact date, or on the closest date LESS than the date
+(define (price-on-closest-date gnucash-data commodity-id arg-date)
+  (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
+    (let loop ([prices price-list] [found-price (void)])
+      (let* ([price (car prices)]
+            [date (send price get-date)])
+        (cond
+          [(empty? price-list) (error (format "didn't find the price for ~a on ~a~%" commodity-id date))]
+          [(equal? date arg-date) price]
+          [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
+          [(string>? date arg-date)
+           (if (void? found-price)
+               (error (format "didn't find the price for ~a on ~a~%" commodity-id date))
+               found-price)])))))
+          
+
+
 (define (demo)
   (displayln "----------------------------")
   (displayln "         DEMO               ")
@@ -424,7 +441,7 @@ main repo object.
   ;(display-all-transactions gnucash-data)
   ;(display-all-commodities gnucash-data)
   ;(display-all-trans-for-bmo-mastercard gnucash-data)
-  
+  #|
   (let* ([prices-hash (send gnucash-data get-prices-by-cmdty-id)]
          [price-lists (hash-values prices-hash)]
          [flat-price-list (flatten price-lists)])
@@ -435,10 +452,16 @@ main repo object.
       (for ([price (hash-ref prices-hash id)])
         (printf "~a~%" (send price as-string)))))
         ;(printf "~a~%" (send price as-string)))))
-  
+  |#
+  (displayln (send (price-on-closest-date gnucash-data "VEQT" "2023-08-30") as-string))
   (displayln ""))
 
 (demo)
+
+          
+            
+    
+  
 
 
 ;; --------------
