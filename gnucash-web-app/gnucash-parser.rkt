@@ -10,8 +10,8 @@
 
 (require "gnucash-objects.rkt")
 
-(define *TEMPLATE-ROOT-NAME* "Template Root")
-(define *ROOT-NAME* "Root Account")
+(define %TEMPLATE-ROOT-FULLNAME% "Template Root")
+(define %ROOT-NAME% "Root Account")
 
  ;(struct-out test-struct))
 
@@ -324,7 +324,9 @@ main repo object.
   (account-metadata gnucash-data)
   (link-split-account-transaction gnucash-data)
   (send gnucash-data clear-all-transactions)
-  (send gnucash-data sort-prices))
+  (send gnucash-data sort-prices)
+  (send gnucash-data sort-child-accounts)
+  )
 
 
 ;; add matching transaction to account, account to split (not just id)
@@ -343,12 +345,21 @@ main repo object.
 ;; build metadata for accounts
 ;; eg. link to parent object using id from file,
 ;; build full name with all parent names,
+;; store accounts by fullname
 ;; hide template accounts
 ;; MODIFIES gnucash-date
 ;; no return
+;; yeah, this could be split into different functions...
 (define (account-metadata gnucash-data)
-  (let ([accounts (send gnucash-data accounts-sorted-by-name)]
-        [template-root-id (send (send gnucash-data account-by-name *TEMPLATE-ROOT-NAME*) get-id)])
+  ;; we define it here because we can't search by full-name yet since metadata is not built
+  ;; after this, search by fullname if needed?
+  (define (account-by-name arg-name)
+      (let ([found-list (filter (lambda (act) (equal? arg-name (send act get-name))) (send gnucash-data all-accounts))])
+        (if (empty? found-list)
+            (error (format "can't find account with fullname ~a~%" arg-name))
+            (car found-list))))
+  (let ([accounts (send gnucash-data all-accounts)]
+        [template-root-id (send (account-by-name %TEMPLATE-ROOT-FULLNAME%) get-id)])
     ; link to parent object
     (for ([act accounts])
       (let ([parent-id (send act get-parent-id)])
@@ -358,39 +369,41 @@ main repo object.
     ; remove templates; yes we loop again
     ; identify root
     ; build full name with recursive function
-    (for ([act (send gnucash-data accounts-sorted-by-name)])
+    (for ([act (send gnucash-data all-accounts)])
       (let ([account-name (send act get-name)]
             [account-id (send act get-id)] 
             [parent-id (send act get-parent-id)])
         ;(printf "name: ~a parent-id: ~a (t-r-id: ~a)~%" account-name parent-id template-root-id)
         
-        (cond [(equal? account-name *ROOT-NAME*) (send gnucash-data set-root-account! act)]
-              [(or (equal? account-name *TEMPLATE-ROOT-NAME*) (equal? template-root-id parent-id))
+        (cond [(equal? account-name %ROOT-NAME%) (send gnucash-data set-root-account! act)]
+              [(or (equal? account-name %TEMPLATE-ROOT-FULLNAME%) (equal? template-root-id parent-id))
               (send gnucash-data remove-account act)]
-              [else (build-full-name act)])))))
+              [else (build-fullname act)])))
 
-;; prepend the parent name to the full-name of the account
+    ))
+
+;; prepend the parent name to the fullname of the account
 ;; recurse up the parent tree
-(define (build-full-name account)
-  ; start by setting full-name to account name
-  (send account set-full-name! (send account get-name))
+(define (build-fullname account)
+  ; start by setting fullname to account name
+  (send account set-fullname! (send account get-name))
   (let loop ([parent (send account get-parent)])
     (cond
-         [(not (or (void? parent) (equal? *ROOT-NAME* (send parent get-name))))
-               (let* ([full-name (send account get-full-name)]
+         [(not (or (void? parent) (equal? %ROOT-NAME% (send parent get-name))))
+               (let* ([fullname (send account get-fullname)]
                       [parent-name (send parent get-name)]
-                      [new-full-name (string-append parent-name ":" full-name)])
-                 (send account set-full-name! new-full-name)
+                      [new-fullname (string-append parent-name ":" fullname)])
+                 (send account set-fullname! new-fullname)
                  (loop (send parent get-parent)))])))
 
   #|
   (if (void? current-parent)
       void
       (let* ([parent-name (send current-parent get-name)]
-            [full-name (send account get-full-name)]
-            [new-full-name (string-append parent-name ":" full-name)])
-        (send account set-full-name! new-full-name)
-        (build-full-name-rec account (send current-parent get-parent)))))
+            [fullname (send account get-fullname)]
+            [new-fullname (string-append parent-name ":" fullname)])
+        (send account set-fullname! new-fullname)
+        (build-fullname-rec account (send current-parent get-parent)))))
                
   |#
 
@@ -452,9 +465,24 @@ main repo object.
       (for ([price (hash-ref prices-hash id)])
         (printf "~a~%" (send price as-string)))))
         ;(printf "~a~%" (send price as-string)))))
-  |#
-  (displayln (send (price-on-closest-date gnucash-data "VEQT" "2023-08-30") as-string))
-  (displayln ""))
+  ;(displayln (send (price-on-closest-date gnucash-data "VEQT" "2023-08-30") as-string))
+  ;(displayln "")
+
+  ;(filter (lambda (act) (send act is-holding?)) (send gnucash-data all-accounts))
+  (for ([account (filter (lambda (act) (send act is-holding?)) (send gnucash-data all-accounts))])
+    (displayln (send account get-fullname)))
+
+  (let ([account (send gnucash-data account-by-fullname "3. Investissements:NON-ENREGISTRÉ")])
+    (printf "type of ~a: ~a~%"  (send account get-name) (send account get-type))
+    (printf "is ~a an investment account? ~a~%" (send account get-name) (send account is-investment?))
+    (printf "is ~a a holding account? ~a~%" (send account get-name) (send account is-holding?)))
+|#
+  (for ([account (send gnucash-data holding-accounts)])
+    (displayln (send account get-fullname)))
+  
+  
+
+  )
 
 (demo)
 
