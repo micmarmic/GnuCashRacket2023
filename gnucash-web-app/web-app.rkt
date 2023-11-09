@@ -11,9 +11,9 @@
 (define %gnucash-data% (void)) ; global set in (start-app)
 (define %base-template-path% "templates/base-template.html")
 
-;; --------------
-;; CONFIG STRINGS
-;; --------------
+;; ----------------
+;;  CONFIG STRINGS
+;; ----------------
 (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 ;(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
@@ -141,9 +141,10 @@ Images can be served statically using http-response-image.
 
 (define-values (dispatch generate-url)
                (dispatch-rules
-                [("account" (string-arg) (integer-arg))
-                 (lambda (request account-id page-num)
-                   (ledger-view %gnucash-data% account-id request page-num (get-url request)))]
+                ;; id page-number split-flag (s1 display splits, else just trans)
+                [("account" (string-arg) (integer-arg) (string-arg))
+                 (lambda (request account-id page-num split-flag)
+                   (ledger-view %gnucash-data% account-id request page-num split-flag (get-url request)))]
                 ;[("account" (string-arg)) (lambda (request account-id) (ledger-view %gnucash-data% account-id request 0))]
                 ;[("account" (string-arg)) (lambda (request string-arg) (account-details %gnucash-data% request string-arg))]
                 [("accounts") (lambda (request) (account-list %gnucash-data% request))]

@@ -43,6 +43,7 @@ main repo object.
 (define TRANSACTION-DESCRIPTION "<trn:description>")
 (define TRANSACTION-DATE-POSTED "<trn:date-posted>")
 (define TRANSACTION-ID "<trn:id type=\"guid\">")
+(define TRANSACTION-MEMO "<slot:value type=\"string\">")
 
 (define ALL-SPLITS-START "<trn:splits>")
 (define ALL-SPLITS-END "</trn:splits>")
@@ -269,6 +270,8 @@ main repo object.
              (cond
                [(string-prefix? line TRANSACTION-DESCRIPTION)
                 (send transaction set-description! value)]
+               [(string-prefix? line TRANSACTION-MEMO)
+                (send transaction set-memo! value)]
                [(string-prefix? line TRANSACTION-DATE-POSTED)
                 (send transaction set-date-posted!
                       (substring (next-line-element-value in) 0 10))]
