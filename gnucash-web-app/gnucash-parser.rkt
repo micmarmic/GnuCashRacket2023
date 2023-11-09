@@ -54,6 +54,18 @@ main repo object.
 (define SPLIT-QUANTITY "<split:quantity>")
 (define SPLIT-ACCOUNT-ID "<split:account type=\"guid\">")
 
+
+(define ALL-PRICES-START "<gnc:pricedb version=\"1\">")
+(define ALL-PRICES-END "</gnc:pricedb>")
+(define PRICE-START "<price>")
+(define PRICE-END "</price>")
+(define PRICE-START-COMMODITY "<price:commodity>")
+(define PRICE-END-COMMODITY "</price:commodity>")
+;; after commodity find commodity-id
+(define PRICE-COMMODITY-ID "<cmdty:id>")
+(define PRICE-VALUE "<price:value>")
+(define PRICE-DATE "<ts:date>")
+
 (define COMMODITY-START "<gnc:commodity version=\"2.0.0\">")
 (define COMMODITY-END "</gnc:commodity>")
 (define COMMODITY-ID "<cmdty:id>")
@@ -180,6 +192,56 @@ main repo object.
     ;;(printf "IMPORTED split:: ~a~%" (send split as-string))
     split))
 
+#|
+(define ALL-PRICES-START "<gnc:pricedb version="1">")
+(define ALL-PRICES-END "</gnc:pricedb>")
+(define PRICE-START "<price>")
+(define PRICE-END "</price>")
+(define PRICE-COMMODITY "<price:commodity>")
+;; after commodity find commodity-id
+(define PRICE-COMMODITY-ID "<cmdty:id>")
+(define PRICE-VALUE "<price:value>")
+(define PRICE-DATE "<ts:date>")
+|#
+
+;; extract the commodity-id from one of the following lines
+;; assume you were just on line PRICE-START-COMMODITY
+;; loop to find PRICE-COMMODITY-ID
+;; if you reach PRICE-END-COMMODITY, there was an error
+(define (import-commodity-id in)
+  (let loop ([line (next-line in)])
+    ;(printf "line ~a~%" line)
+    (cond
+      ; found it!
+      [(string-contains? line PRICE-COMMODITY-ID) (element-value line)]
+      ; oops! didn't find it
+      [(equal? line PRICE-END-COMMODITY)
+       (error "CAN'T FIND PRICE'S COMMODITY-ID. CHECK THE INPUT FILE!")]
+      ; keep looking
+      [else (loop (next-line in))])))
+          
+  
+
+;; import a single price 
+(define (import-price in)
+  (let ([price (make-object price%)])
+    (let loop ([line (next-line in)])
+      (if (equal? line PRICE-END)
+          price
+          (let ([value (element-value line)])
+            (cond
+              [(string-prefix? line PRICE-DATE)
+               (send price set-date! value)]
+              [(string-prefix? line PRICE-VALUE)
+               (send price set-value! (string->number value))]
+              [(string-contains? line PRICE-START-COMMODITY)
+               (send price set-commodity-id! (import-commodity-id in))])
+            (loop (next-line in)))))
+    (printf "~a~%" (send price as-string))
+    price))
+
+
+
 ;; import individual splits from split section in file
 (define (import-all-splits in)
   ;; on entry, we just read the start of all splits 
@@ -246,6 +308,7 @@ main repo object.
   (cond
     [(equal? line ACCOUNT-START) (send gnucash-data add-account! (import-account in))]
     [(equal? line COMMODITY-START) (send gnucash-data add-commodity! (import-commodity in))]
+    [(equal? line PRICE-START)(send gnucash-data add-price! (import-price in))]
     [(equal? line TRANSACTION-START) (send gnucash-data add-transaction! (import-transaction in))]))
 
 
@@ -260,7 +323,8 @@ main repo object.
 (define (build-metadata gnucash-data)
   (account-metadata gnucash-data)
   (link-split-account-transaction gnucash-data)
-  (send gnucash-data clear-all-transactions))
+  (send gnucash-data clear-all-transactions)
+  (send gnucash-data sort-prices))
 
 
 ;; add matching transaction to account, account to split (not just id)
@@ -348,20 +412,33 @@ main repo object.
   (displayln "----------------------------")
   (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
   ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
-  (print-overview gnucash-data)
+  ;(print-overview gnucash-data)
   (displayln "----------------------------")
   ;(display-all-accounts gnucash-data )
-  (define first-tran (first (send gnucash-data get-list-transactions)))
-  (displayln first-tran)
+  ;(define first-tran (first (send gnucash-data get-list-transactions)))
+  ;(displayln first-tran)
   ;(displayln (send first-tran as-string-single-line))
   ;(let ([tran (first (send gnucash-data get-list-transactions))])
   ;  (displayln (send tran as-string)))
   ;(displayln (send  as-string))
   ;(display-all-transactions gnucash-data)
-  (display-all-commodities gnucash-data)
+  ;(display-all-commodities gnucash-data)
   ;(display-all-trans-for-bmo-mastercard gnucash-data)
+  
+  (let* ([prices-hash (send gnucash-data get-prices-by-cmdty-id)]
+         [price-lists (hash-values prices-hash)]
+         [flat-price-list (flatten price-lists)])
+    (printf "found ~a price-commodities~%" (hash-count prices-hash))    
+    (printf "first individual prices ~a~%" (length flat-price-list))
+    (for ([id (hash-keys prices-hash)])
+      (printf "======== ~a =======~%" id)
+      (for ([price (hash-ref prices-hash id)])
+        (printf "~a~%" (send price as-string)))))
+        ;(printf "~a~%" (send price as-string)))))
+  
   (displayln ""))
-; (demo)
+
+(demo)
 
 
 ;; --------------

@@ -178,41 +178,17 @@ Images can be served statically using http-response-image.
 (start-app)
 
 ;; DEVELOPMENT
+
 #|
 (set! %gnucash-data% (import-gnucash-file %path-data-file%))
-(define account (send %gnucash-data% account-by-name "BMO MasterCard"))
+(define account (send %gnucash-data% account-by-name "BMO (CELI"))
 (send account get-children)
 (define root (send %gnucash-data% account-by-name "Root Account"))
 
 
 
-(define (children-rec account indent)
-  (let ([new-indent (string-append "  " indent)]
-        [children (send account get-children)]
-        [account-name (send account get-name)])
-    
-    (format "~a~a~%~a" indent account-name (for ([child children])
-      (children-rec child new-indent)))
-    ))
+|#
 
-
-(define (children-tree account arg-indent)
-  (let loop ([children (send account get-children)]
-             [results ""]
-             [indent arg-indent])
-    (if (empty? children)
-        results
-        (let* ([new-indent (string-append indent indent)]
-               [child (first children)]
-               [child-children (send child get-children)]
-               [child-li (format "<li class=\"mb-2\">~a</li>" (send child get-name))]
-               [child-ul (if (empty? child-children)
-                            (format "<ul>~%~a~%</ul>~%" child-li)
-                            (format "<ul class=\"list-unstyled\">~%~a~%~a</ul>~%" child-li (children-tree child indent)))])
-          (loop (rest children) (string-append results child-ul) new-indent)))))
-        
-  |#  
-    
 
 ;(children-rec root "")
 ;(displayln (children-tree root ""))
