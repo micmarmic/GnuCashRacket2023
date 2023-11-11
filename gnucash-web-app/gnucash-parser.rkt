@@ -204,18 +204,6 @@ main repo object.
     ;;(printf "IMPORTED split:: ~a~%" (send split as-string))
     split))
 
-#|
-(define ALL-PRICES-START "<gnc:pricedb version="1">")
-(define ALL-PRICES-END "</gnc:pricedb>")
-(define PRICE-START "<price>")
-(define PRICE-END "</price>")
-(define PRICE-COMMODITY "<price:commodity>")
-;; after commodity find commodity-id
-(define PRICE-COMMODITY-ID "<cmdty:id>")
-(define PRICE-VALUE "<price:value>")
-(define PRICE-DATE "<ts:date>")
-|#
-
 ;; extract the commodity-id from one of the following lines
 ;; assume you were just on line PRICE-START-COMMODITY
 ;; loop to find PRICE-COMMODITY-ID
@@ -449,11 +437,13 @@ main repo object.
                found-price)])))))
 
 
+;; TODO: MOVE TO OBJECTS
+
 (define (shares-on-closest-date gnucash-data arg-account-id arg-date)
   ; TODO need a list of transaction WITH a share balance, like in a ledger
   ; require views.rkt
   ; so use   investment-account->ledger-lines gnucash-data arg-account-id page-number items-per-page)
-  ; huge items per page to get all lines
+  ; huge items-per-page to get all lines
   (let ([account (send gnucash-data account-by-id arg-account-id)]
         [trans-splits  (investment-account->ledger-lines gnucash-data arg-account-id 0 1000)])
     ; legder-lines is a list with (list trans (list split split)) for each trans
@@ -466,19 +456,21 @@ main repo object.
     |#
     (let loop ([all-lines trans-splits]
                [final-share-balance 0])
-      (let* ([trans (caar all-lines)] ; each trans-split is a list (car) and the first item is a transaction (car) => caar
-             [date (investment-ledger-line-date trans)]
-             [current-share-balance (string->number (investment-ledger-line-balance trans))])
-        (printf "~a: ~a ~a(lst ~a) ~%" (investment-ledger-line-date trans) current-share-balance final-share-balance (length trans-splits))
-        (cond
-          [(empty? trans-splits) (error (format "didn't find the share quantity for ~a on ~a~%" (send account get-name) date))]
-          [(equal? date arg-date) current-share-balance]
-          [(string<? date arg-date) (loop (rest all-lines) current-share-balance)] ; closest price so far
-          [(string>? date arg-date)
-           (if (void? final-share-balance)
-               (error (format "didn't find the share quantity for ~a on ~a~%" (send account get-name) date))
-               final-share-balance)])))))
-
+      (if (empty? all-lines)
+          final-share-balance          
+          (let* ([trans (caar all-lines)] ; each trans-split is a list (car) and the first item is a transaction (car) => caar
+                 [date (investment-ledger-line-date trans)]
+                 [current-share-balance (string->number (investment-ledger-line-balance trans))])
+            ;(printf "~a: ~a ~a(lst ~a) ~%" (investment-ledger-line-date trans) current-share-balance final-share-balance (length trans-splits))
+            (cond
+              [(empty? trans-splits) (error (format "didn't find the share quantity for ~a on ~a~%" (send account get-name) date))]
+              [(equal? date arg-date) current-share-balance]
+              [(string<? date arg-date) (loop (rest all-lines) current-share-balance)] ; closest price so far
+              [(string>? date arg-date)
+               (if (void? final-share-balance)
+                   (error (format "didn't find the share quantity for ~a on ~a~%" (send account get-name) date))
+                   final-share-balance)]))))))
+  
 
 (define (demo)
   (displayln "----------------------------")
@@ -538,20 +530,51 @@ main repo object.
 
   (printf "visible by filter: ~a~%"
           (length (filter (lambda (act) (send act is-visible?)) (send gnucash-data all-accounts))))
+#|
+  (let* ([accounts (send gnucash-data accounts-sorted-by-fullname)]
+        [list-fullname-depth (map (lambda (act) (list (send act get-fullname) (send act tree-depth))) accounts)])
+    (for ([fullname-depth list-fullname-depth])
+      (printf "~a - ~a~%" (second fullname-depth) (first fullname-depth))))
+|#
 
-  ; VEQT (CELI)
-  (define veqt-celi-id "9e4da09a00eb4fb4af256279ec1c1a78")
+  (define date "2023-01-31")
+  (let* ([accounts (send gnucash-data accounts-sorted-by-fullname)]
+        [holding-accounts (filter (lambda (act) (send act is-holding?)) accounts)])
+    (for ([account holding-accounts])
+      (displayln (send account get-fullname))
+      (for ([child-account (send account get-children)])
+        ;(printf "    ~a~%" (send child-account get-name))
+        (let ([account-id (send child-account get-id)]
+              [account-name (send child-account get-name)])
+          (let([share-balance (shares-on-closest-date gnucash-data account-id date)])
+            (when (> share-balance 0)
+                (printf "   ~a: ~a~%" account-name share-balance)))))))
+
+  #|
+  (define veqt-celi-account-id "9e4da09a00eb4fb4af256279ec1c1a78")
   (define account (send gnucash-data account-by-id veqt-celi-id))
   (define commodity-id (send account get-commodity-id))
   (define date "2023-01-31")
-  (define share-balance (shares-on-closest-date gnucash-data veqt-celi-id date))
+  (define share-balance (shares-on-closest-date gnucash-data veqt-celi-account-id date))
   (define price (price-on-closest-date gnucash-data commodity-id date))
   (displayln (real->decimal-string (* share-balance (send price get-value))))
-    
-  
+  |#  
+  (define hxs-celi (send gnucash-data account-by-fullname "3. Investissements:CELI:HXS (CELI)"))
+  (define hxs-celi-id (send hxs-celi get-id))
+  (for ([trans (send hxs-celi transactions-sorted-by-date)])
+    ;(displayln (send trans get-date-posted))
+    (displayln "------------------------")
+    (for ([split (send trans get-splits)])
+      (when (equal? (send split get-account-id) hxs-celi-id)
+          (printf "~a ~a ~a ~a~%"
+                  (send trans get-date-posted)
+                  (send split get-quantity)
+                  (send split get-id)
+                  (send trans get-id)))))
   )
 
 (demo)
+
 
           
             

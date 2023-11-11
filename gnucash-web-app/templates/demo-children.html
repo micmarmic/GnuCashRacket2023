@@ -1,5 +1,19 @@
-<ul>		
-    @in[child children]{
-    <li>@(child-name child )</li>
+<h2>NESTED</h2>
+<ul>@in[parent parents]{
+    <li>@(parent-name parent)
+        <ul>
+            @in[parent (parent-children parent)]{
+            <li>@(parent-name parent)
+                <ul>
+                    @in[parent (parent-children parent)]{
+                    <li>@(parent-name parent)
+
+                    </li>
+                    }
+                </ul>
+            </li>
+            }
+        </ul>
+    </li>
     }
 </ul>
