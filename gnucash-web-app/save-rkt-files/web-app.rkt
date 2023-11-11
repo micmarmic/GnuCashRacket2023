@@ -2,9 +2,8 @@
 (require web-server/servlet)  ; Provides dispatch-rules.
 ; Provides serve/servlet and happens to provide response/full.
 (require web-server/servlet-env
-         web-server/templates
+         web-server/templates)
 
-         )
 (require "gnucash-parser.rkt"
          "gnucash-objects.rkt"
          "views.rkt")
@@ -176,7 +175,6 @@ Images can be served statically using http-response-image.
    #:listen-ip "127.0.0.1"
    #:port 8000
    #:servlet-regexp #rx""))
-
 
 (start-app)
 

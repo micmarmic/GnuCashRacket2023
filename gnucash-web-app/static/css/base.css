@@ -1,0 +1,9 @@
+html {
+   font-size: 14px;
+}
+
+/* override bootstrap button to remove decoration on hover 
+.button-light:hover {
+   text-decoration: none!important;
+}
+*/

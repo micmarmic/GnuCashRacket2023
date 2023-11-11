@@ -573,7 +573,7 @@ main repo object.
                   (send trans get-id)))))
   )
 
-;(demo)
+(demo)
 
 
           
