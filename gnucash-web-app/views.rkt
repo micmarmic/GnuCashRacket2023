@@ -14,7 +14,7 @@
 (define BOOTSTRAP-COLOR-TRANSACTION "table-success") ; 
 (define BOOTSTRAP-COLOR-SPLIT "table-light") ;
 
-(define-runtime-path BASE-CSS-FILEPATH "static/css/base.css")
+;(define-runtime-path BASE-CSS-FILEPATH "static/css/base.css") ; to load as file
 
 ;; --------------
 ;; LEDGER HELPERS
@@ -496,7 +496,10 @@
 ;;  BASE CSS
 ;; ----------
 (define (load-base-css)
-    (file->string BASE-CSS-FILEPATH))
+  ; if you load a file, it has to remain on disk
+  ;(file->string BASE-CSS-FILEPATH))
+  ; import-template is compiled with the program
+  (include-template "static/css/base.css"))
 
 ;; ----------------
 ;;  HTML RESPONSES

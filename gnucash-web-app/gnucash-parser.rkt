@@ -6,10 +6,10 @@
   racket/block
   racket/list
   rackunit
-  racket/gui/base
-  "views.rkt")
+  racket/gui/base)
 
-(require "gnucash-objects.rkt")
+(require "gnucash-objects.rkt"
+         "views.rkt")
 
 (define %TEMPLATE-ROOT-FULLNAME% "Template Root")
 (define %ROOT-NAME% "Root Account")
@@ -55,6 +55,7 @@ main repo object.
 (define SPLIT-END "</trn:split>")
 (define SPLIT-ID "<split:id type=\"guid\">")
 (define SPLIT-MEMO "<split:memo>")
+(define SPLIT-ACTION "<split:action>")
 (define SPLIT-VALUE "<split:value>")
 (define SPLIT-QUANTITY "<split:quantity>")
 (define SPLIT-ACCOUNT-ID "<split:account type=\"guid\">")
@@ -198,6 +199,8 @@ main repo object.
                  (send split set-quantity! (string->number value))]
                [(string-contains? line SPLIT-MEMO)
                  (send split set-memo! value)]
+               [(string-contains? line SPLIT-ACTION)
+                 (send split set-action! value)]
                [(string-prefix? line SPLIT-ACCOUNT-ID)
                 (send split set-account-id! value)]))
            (split-loop (next-line in)))))
@@ -328,13 +331,14 @@ main repo object.
   (send gnucash-data clear-all-transactions)
   (send gnucash-data sort-prices)
   (send gnucash-data sort-child-accounts)
+  (send gnucash-data sort-account-transactions)
   )
 
 
 ;; add matching transaction to account, account to split (not just id)
 ;; template transactions exit for accounts that were deleted - skip them
 (define (link-split-account-transaction gnucash-data)
-  (for ([transaction (send gnucash-data get-list-transactions)])
+  (for ([transaction (send gnucash-data get-transactions)])
     (for ([split (send transaction get-splits)])
       (let* ([account-id (send split get-account-id)]
              [account (send gnucash-data account-by-id account-id)])
@@ -415,30 +419,21 @@ main repo object.
 
 
 (define (display-all-trans-for-bmo-mastercard gnucash-data)
-    (let ([account (send gnucash-data account-by-name "BMO Mastercard")])
+    (let ([account (send gnucash-data account-by-id "fb5d9af6c4776652cb2858d3ed9af4db")])
       (displayln "ALL TRANSACTIONS IN 'BMO Mastercard'")
       (displayln "------------------------------------")
       (display-all-transactions-all-splits-in-account account)))
 
 
-; return the price ON the exact date, or on the closest date LESS than the date
-(define (price-on-closest-date gnucash-data commodity-id arg-date)
-  (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
-    (let loop ([prices price-list] [found-price (void)])
-      (let* ([price (car prices)]
-            [date (send price get-date)])
-        (cond
-          [(empty? price-list) (error (format "didn't find the price for ~a on ~a~%" commodity-id date))]
-          [(equal? date arg-date) price]
-          [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
-          [(string>? date arg-date)
-           (if (void? found-price)
-               (error (format "didn't find the price for ~a on ~a~%" commodity-id date))
-               found-price)])))))
+
 
 
 ;; TODO: MOVE TO OBJECTS
 
+
+
+; return the investment-snapshot for the given account id on the date closest
+; but not after the given date
 (define (shares-on-closest-date gnucash-data arg-account-id arg-date)
   ; TODO need a list of transaction WITH a share balance, like in a ledger
   ; require views.rkt
@@ -470,7 +465,6 @@ main repo object.
                (if (void? final-share-balance)
                    (error (format "didn't find the share quantity for ~a on ~a~%" (send account get-name) date))
                    final-share-balance)]))))))
-  
 
 (define (demo)
   (displayln "----------------------------")
@@ -479,7 +473,7 @@ main repo object.
   (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
   ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
   ;(print-overview gnucash-data)
-  (displayln "----------------------------")
+  (displayln "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
   ;(display-all-accounts gnucash-data )
   ;(define first-tran (first (send gnucash-data get-list-transactions)))
   ;(displayln first-tran)
@@ -537,6 +531,7 @@ main repo object.
       (printf "~a - ~a~%" (second fullname-depth) (first fullname-depth))))
 |#
 
+  #|
   (define date "2023-01-31")
   (let* ([accounts (send gnucash-data accounts-sorted-by-fullname)]
         [holding-accounts (filter (lambda (act) (send act is-holding?)) accounts)])
@@ -548,8 +543,16 @@ main repo object.
               [account-name (send child-account get-name)])
           (let([share-balance (shares-on-closest-date gnucash-data account-id date)])
             (when (> share-balance 0)
-                (printf "   ~a: ~a~%" account-name share-balance)))))))
-
+                (printf "   ~a: ~a ~a~%" account-name share-balance account-id)))))))
+  |#
+  
+  #|
+  (printf "date: ~a shares: ~a cost: ~a~%"
+          (investment-snapshot-date snapshot)
+          (investment-snapshot-share-balance snapshot)
+          (investment-snapshot-cost-basis snapshot))
+  |#
+  
   #|
   (define veqt-celi-account-id "9e4da09a00eb4fb4af256279ec1c1a78")
   (define account (send gnucash-data account-by-id veqt-celi-id))
@@ -558,29 +561,25 @@ main repo object.
   (define share-balance (shares-on-closest-date gnucash-data veqt-celi-account-id date))
   (define price (price-on-closest-date gnucash-data commodity-id date))
   (displayln (real->decimal-string (* share-balance (send price get-value))))
-  |#  
+  
   (define hxs-celi (send gnucash-data account-by-fullname "3. Investissements:CELI:HXS (CELI)"))
   (define hxs-celi-id (send hxs-celi get-id))
   (for ([trans (send hxs-celi transactions-sorted-by-date)])
-    ;(displayln (send trans get-date-posted))
+    ;(displayln (send trans get-date))
     (displayln "------------------------")
     (for ([split (send trans get-splits)])
       (when (equal? (send split get-account-id) hxs-celi-id)
           (printf "~a ~a ~a ~a~%"
-                  (send trans get-date-posted)
+                  (send trans get-date)
                   (send split get-quantity)
                   (send split get-id)
-                  (send trans get-id)))))
+                  ))))
+  |#
+  
+  
   )
 
-;(demo)
-
-
-          
-            
-    
-  
-
+(demo)
 
 ;; --------------
 ;;   UNIT TESTS

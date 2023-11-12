@@ -1,0 +1,59 @@
+<!doctype html>
+
+<head>
+    <title>Accordion Example</title>
+</head>
+
+<body>
+
+    <h2>Book List</h2>
+
+    <LI><span><strong>Sams Teach Yourself C Programming in One Hour
+                a Day, (7th Edition)</strong></span>
+        <UL>
+            <LI>Author: Bradley Jones</LI>
+            <LI>Publisher: Sams Publishing</LI>
+            <LI>Description: This is a description of a C programming book you
+                can use to learn how to code!</LI>
+        </UL>
+    </LI>
+    <LI><span><strong>Windows Live Essentials</strong></span>
+        <UL>
+            <LI>Author: Bradley Jones</LI>
+            <LI>Publisher: Sams Publishing</LI>
+            <LI>Description: This is a book covering some of the side programs
+                included with some older versions of Windows.</p>
+        </UL>
+    </LI>
+    <LI><span><strong>Sams Teach Yourself C++ in One Hour a Day</strong></span>
+        <UL>
+            <LI>Author: Bradley Jones</LI>
+            <LI>Publisher: Sams Publishing</LI>
+            <LI>Description: This is a C++ book that has lots of interesting things
+                within its covers.</LI>
+        </UL>
+    </LI>
+
+    <script type="text/javascript">
+        var allSpan = document.getElementsByTagName('span');
+
+        for (var x = 0; x < allSpan.length; x++) {
+            allSpan[x].onclick = function () {
+                if (this.parentNode) {
+                    var childList = this.parentNode.getElementsByTagName('LI');
+                    for (var y = 0; y < childList.length; y++) {
+                        var currentState = childList[y].style.display;
+                        if (currentState == "none") {
+                            childList[y].style.display = "block";
+                        }
+                        else {
+                            childList[y].style.display = "none";
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

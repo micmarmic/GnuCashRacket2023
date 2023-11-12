@@ -3,11 +3,11 @@
 ; Provides serve/servlet and happens to provide response/full.
 (require web-server/servlet-env
          web-server/templates
-
          )
 (require "gnucash-parser.rkt"
          "gnucash-objects.rkt"
-         "views.rkt")
+         "views.rkt"
+         "finance.rkt")
 
 (define %gnucash-data% (void)) ; global set in (start-app)
 (define %base-template-path% "templates/base-template.html")
@@ -178,12 +178,11 @@ Images can be served statically using http-response-image.
    #:servlet-regexp #rx""))
 
 
-(start-app)
+;(start-app)
 
 ;; DEVELOPMENT
 
 #|
-(set! %gnucash-data% (import-gnucash-file %path-data-file%))
 (define account (send %gnucash-data% account-by-name "BMO (CELI"))
 (send account get-children)
 (define root (send %gnucash-data% account-by-name "Root Account"))
@@ -220,3 +219,26 @@ Images can be served statically using http-response-image.
 (printf "Length lines: ~a~%" (length lines))
 
 |#
+
+;;
+;; DEMO SNAPSHOT AT DATE
+;;
+
+(define gnucash-data (import-gnucash-file %path-data-file%))
+(define reer-hxs-account-id "91101b4982e09fa1f23be39b988fdca9")
+(define account (send gnucash-data account-by-id reer-hxs-account-id))
+(define commodity-id (send account get-commodity-id))
+(printf "snapshot for account ~a~%" (send (send gnucash-data account-by-id reer-hxs-account-id) get-fullname))
+(define working-date "2022-03-31")
+(let* ([account-name (send account get-fullname)]
+       [snapshot (snapshot-on-closest-date gnucash-data reer-hxs-account-id working-date)]
+       [price (send (price-on-closest-date gnucash-data commodity-id working-date) get-value)]
+       [cost (investment-snapshot-amount snapshot)]
+       [shares (investment-snapshot-shares snapshot)]
+       [commo-id (investment-snapshot-commodity-id snapshot)]
+       [value (* shares price)]
+       [gain-loss (- value cost)]
+       [performance (* 100 (/ gain-loss cost))])
+  (printf "~a: ~a (REER) shares: ~a price: ~a  value: ~a cost: ~a 2 gain/loss: ~a performance: ~a%~%" working-date commo-id  (~r shares #:precision 3)
+          (~r price #:precision 3) (~r value #:precision 2)(~r cost #:precision 2)  (~r gain-loss #:precision 2)
+          (~r performance #:precision 1)))
