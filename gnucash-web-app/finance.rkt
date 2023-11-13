@@ -2,7 +2,9 @@
 
 (require racket/block)
 
-(require "gnucash-objects.rkt")
+(require "gnucash-objects.rkt"
+         "gnucash-parser.rkt"
+         )
 
 (provide (all-defined-out))
 
@@ -10,7 +12,7 @@
 
 MODULE FINANCE
 
-Function to perform financial calculation and provide numbers for views.
+Functions to perform financial calculation and provide numbers for views.
 
 |#
 
@@ -29,8 +31,38 @@ Function to perform financial calculation and provide numbers for views.
 
 ;; TODO NEED CASH AMOUNT FROM HOLDING ACCOUNT
 
+(define (freal value precision width)
+  ; using ~a with real converter because ~r separates the - sign from the number
+  (~a (real->decimal-string value) #:min-width width #:align 'right))
 
+(define (repeat-char->string char n)
+  (build-string n (lambda (n) char)))
 
+; return a commodity-summary for the account on the given date
+; combine the calculation of the shares and cost with the search for the price
+; and the roi calculations
+; notice: if there are no shares, there is no summary, and nothing is returned
+(define (summary-roi-on-date gnucash-data account arg-date)
+  (let* ([account-id (send account get-id)]
+         [commodity-id (send account get-commodity-id)]
+         [snapshot (snapshot-on-closest-date gnucash-data account-id arg-date)]      
+         [cost (investment-snapshot-amount snapshot)]
+         [shares (investment-snapshot-shares snapshot)]
+         [commo-id (investment-snapshot-commodity-id snapshot)])         
+    (when (> shares 0)
+      (let* ([price (send (price-on-closest-date gnucash-data commodity-id arg-date) get-value)]
+            [value (* shares price)]
+            [gain-loss (- value cost)]
+            [performance (* 100 (/ gain-loss cost))])
+        (printf "~a ~a ~a ~a ~a ~a ~a~%"
+                (~a commo-id #:min-width 14)
+                (freal shares 3 8)
+                (freal price 3 12)
+                (freal value 2 12)
+                (freal cost 2 12)
+                (freal gain-loss 2 12)
+                ; sub1 from 12 width to account for %
+                (string-append (freal performance 2 11) "%"))))))
 
 
 ;; -----------------------------------------------
@@ -108,12 +140,12 @@ Function to perform financial calculation and provide numbers for views.
 ;;  COMMODITY PRICE FOR COMMODITY AT DATE CLOSEST BUT NOT BEYOND
 ;; --------------------------------------------------------------
 
-; return the price% ON the exact date, or on the closest date LESS than the date
+; return the price (value of a price%) ON the exact date, or on the closest date LESS than the date
 (define (price-on-closest-date gnucash-data commodity-id arg-date)
   (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
     (let loop ([prices price-list] [found-price (void)])
       (let* ([price (car prices)]
-            [date (send price get-date)])
+             [date (send price get-date)])
         (cond
           [(empty? price-list) (error (format "didn't find the price for ~a on ~a~%" commodity-id date))]
           [(equal? date arg-date) price]
@@ -121,4 +153,40 @@ Function to perform financial calculation and provide numbers for views.
           [(string>? date arg-date)
            (if (void? found-price)
                (error (format "didn't find the price for ~a on ~a~%" commodity-id date))
-               found-price)])))))
+               (send found-price get-value))])))))
+
+;; ------
+;;  DEMO
+;; ------
+
+(define HUGE-SAMPLE-GNUCASH-FILE
+  "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+(define demo-date "2022-12-31")
+
+(define (demo arg-date)
+  (displayln "DEMO IN FINANCE.RKT")
+  (let ([gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE)])
+    (printf "DATE: ~a~%" arg-date)
+    (for ([account (send gnucash-data holding-accounts)])
+      (let ([fullname (send account get-fullname)]
+            [children (send account get-children)])
+        (printf "~a~%" (repeat-char->string #\- 88))
+        (printf "~a~%"  fullname)
+        (printf "~a~%" (repeat-char->string #\- 88))
+        (printf "~a ~a ~a ~a ~a ~a ~a~%"
+                (~a "COMMODITY" #:min-width 14)
+                (~a "SHARES" #:min-width 8 #:align 'right)
+                (~a "PRICE" #:min-width 12 #:align 'right)
+                (~a "MKT VALUE" #:min-width 12 #:align 'right)
+                (~a "COST" #:min-width 12 #:align 'right)
+                (~a "GAIN/LOSS" #:min-width 12 #:align 'right)
+                (~a "ROI" #:min-width 12 #:align 'right))
+        (for ([child children])
+          ;(printf "~a~%"  (send child get-fullname))
+          (summary-roi-on-date gnucash-data child arg-date))))))
+          ;(let ([snapshot (snapshot-on-closest-date gnucash-data (send child get-id) demo-date)])
+          ;  (when (> (investment-snapshot-shares snapshot) 0)
+          ;    (displayln (investment-snapshot-as-string snapshot)))))))))
+
+
+(demo demo-date)

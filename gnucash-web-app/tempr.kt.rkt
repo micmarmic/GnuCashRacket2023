@@ -1,7 +1,7 @@
 #lang racket
-(define (multiconditions)
-  (let ([num 100])
-    (cond [(> num 2) displayln "matched 1"]
-          [(> num 4) displayln "matched 2"])))
+(define (no-return bool)
+   (when bool
+     (displayln "bool is true")))
 
-(multiconditions)
+;(no-return #t)
+(no-return #f)

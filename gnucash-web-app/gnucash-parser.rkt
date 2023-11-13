@@ -291,6 +291,7 @@ main repo object.
 
 ; the GnuCash reader loops a GnuCash to the EOF and sends lines to the dispatch function
 (define (import-gnucash-file path)
+  (printf "Importing GnuCash data from ~a~%" path)
   (let ([gnucash (make-object gnucash-data%)])
    (send gnucash set-file-path! path)
    (call-with-input-file path    
@@ -301,9 +302,9 @@ main repo object.
           [ else
             (block
               (dispatch-line gnucash line in)
-              (loop (next-line in)))]))))
-    ;(printf "IMPORTED ~a ACCOUNTS before purging templates~%" (send gnucash num-accounts))
+              (loop (next-line in)))]))))    
     (build-metadata gnucash)
+    (displayln "Import completed.")
     gnucash))
 
 ;; detect start of object definition and route to matching function
@@ -473,7 +474,6 @@ main repo object.
   (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
   ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
   ;(print-overview gnucash-data)
-  (displayln "&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
   ;(display-all-accounts gnucash-data )
   ;(define first-tran (first (send gnucash-data get-list-transactions)))
   ;(displayln first-tran)
@@ -579,7 +579,7 @@ main repo object.
   
   )
 
-(demo)
+;(demo)
 
 ;; --------------
 ;;   UNIT TESTS
