@@ -226,6 +226,16 @@ Images can be served statically using http-response-image.
 
 (define gnucash-data (import-gnucash-file %path-data-file%))
 (define reer-hxs-account-id "91101b4982e09fa1f23be39b988fdca9")
+(define bmo-inv-id "13c0b98ed62cca3520c8f4bd500a9d63")
+(define dates (list "2014-11-06" "2016-07-19" "2017-03-06"))
+
+(define (snapshot-list-dates gnucash-data dates account-id)
+  (let ([account (send gnucash-data account-by-id account-id)]
+  (for ([date dates])
+
+  
+
+
 (define account (send gnucash-data account-by-id reer-hxs-account-id))
 (define commodity-id (send account get-commodity-id))
 (printf "snapshot for account ~a~%" (send (send gnucash-data account-by-id reer-hxs-account-id) get-fullname))
@@ -242,3 +252,5 @@ Images can be served statically using http-response-image.
   (printf "~a: ~a (REER) shares: ~a price: ~a  value: ~a cost: ~a 2 gain/loss: ~a performance: ~a%~%" working-date commo-id  (~r shares #:precision 3)
           (~r price #:precision 3) (~r value #:precision 2)(~r cost #:precision 2)  (~r gain-loss #:precision 2)
           (~r performance #:precision 1)))
+
+

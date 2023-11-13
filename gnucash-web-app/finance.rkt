@@ -14,7 +14,11 @@ MODULE FINANCE
 
 Functions to perform financial calculation and provide numbers for views.
 
+See end of this module for explantion of ACB after selling shares
+
 |#
+
+
 
 ;; ---------------------------------------------------------------
 ;;  FULL SNAPSHOT FOR ALL COMMODITIES IN HOLDING ACCOUNTS AT DATE
@@ -31,6 +35,10 @@ Functions to perform financial calculation and provide numbers for views.
 
 ;; TODO NEED CASH AMOUNT FROM HOLDING ACCOUNT
 
+;; ---------
+;;  HELPERS
+;; ---------
+
 (define (freal value precision width)
   ; using ~a with real converter because ~r separates the - sign from the number
   (~a (real->decimal-string value) #:min-width width #:align 'right))
@@ -38,22 +46,71 @@ Functions to perform financial calculation and provide numbers for views.
 (define (repeat-char->string char n)
   (build-string n (lambda (n) char)))
 
+;; ------------
+;;  ROI REPORT
+;; ------------
+
+
+(struct roi-line (commo-id shares price value cost gain-loss roi))
+
+(struct account-roi (account total-roi-line child-roi-lines))
+
+(define (print-roi-line arg-line)
+  (let* ([price (roi-line-price arg-line)]
+        [price-str (if (or (and (string? price) (equal? price ""))
+                           (= 0 price))
+                       (~a "" #:min-width 12)
+                       (freal price 3 12))]
+        [shares (roi-line-shares arg-line)]
+        [shares-str (if (or (and (string? shares) (equal? shares ""))
+                           (= 0 shares))
+                        (~a "" #:min-width 8)
+                        (freal shares 3 8))])
+    (printf "~a ~a ~a ~a ~a ~a ~a~%"
+            (~a (roi-line-commo-id arg-line) #:min-width 14)
+            shares-str
+            price-str
+            (freal (roi-line-value arg-line) 2 12)
+            (freal (roi-line-cost arg-line) 2 12)
+            (freal (roi-line-gain-loss arg-line) 2 12)
+            ; sub1 from 12 width to account for %
+            (string-append (freal (roi-line-roi arg-line) 2 11) "%"))))
+
+(define (print-list-account-roi data)
+  (for ([account-data data])
+    (printf "~a~%" (repeat-char->string #\- 88))
+    (printf "~a~%" (send (account-roi-account account-data) get-fullname))
+    (printf "~a~%" (repeat-char->string #\- 88))
+      (printf "~a ~a ~a ~a ~a ~a ~a~%"
+              (~a "COMMODITY" #:min-width 14)
+              (~a "SHARES" #:min-width 8 #:align 'right)
+              (~a "PRICE" #:min-width 12 #:align 'right)
+              (~a "MKT VALUE" #:min-width 12 #:align 'right)
+              (~a "COST" #:min-width 12 #:align 'right)
+              (~a "GAIN/LOSS" #:min-width 12 #:align 'right)
+              (~a "ROI" #:min-width 12 #:align 'right))
+    (for ([line (account-roi-child-roi-lines account-data)])
+      (print-roi-line line))
+    (print-roi-line (account-roi-total-roi-line account-data))))
+
+
 ; return a commodity-summary for the account on the given date
 ; combine the calculation of the shares and cost with the search for the price
 ; and the roi calculations
 ; notice: if there are no shares, there is no summary, and nothing is returned
 (define (summary-roi-on-date gnucash-data account arg-date)
   (let* ([account-id (send account get-id)]
-         [commodity-id (send account get-commodity-id)]
          [snapshot (snapshot-on-closest-date gnucash-data account-id arg-date)]      
          [cost (investment-snapshot-amount snapshot)]
          [shares (investment-snapshot-shares snapshot)]
          [commo-id (investment-snapshot-commodity-id snapshot)])         
     (when (> shares 0)
-      (let* ([price (send (price-on-closest-date gnucash-data commodity-id arg-date) get-value)]
+      (let* ([price (send (price-on-closest-date gnucash-data commo-id arg-date) get-value)]
             [value (* shares price)]
             [gain-loss (- value cost)]
-            [performance (* 100 (/ gain-loss cost))])
+            [roi (* 100 (/ gain-loss cost))])
+        (roi-line commo-id shares price value cost gain-loss roi)))))
+        #|
         (printf "~a ~a ~a ~a ~a ~a ~a~%"
                 (~a commo-id #:min-width 14)
                 (freal shares 3 8)
@@ -63,7 +120,16 @@ Functions to perform financial calculation and provide numbers for views.
                 (freal gain-loss 2 12)
                 ; sub1 from 12 width to account for %
                 (string-append (freal performance 2 11) "%"))))))
-
+|#
+(define (summarize-roi-lines all-lines)
+  (foldl (lambda (line result)
+           (let* ([new-cost (+ (roi-line-cost line) (roi-line-cost result))]
+                  [new-value (+ (roi-line-value line) (roi-line-value result))]
+                  [gain-loss (- new-value new-cost)]
+                  [roi (* 100 (/ gain-loss new-cost))])
+             (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi)))
+         (roi-line "TOTAL" 0 0 0 0 0 0)
+         all-lines))
 
 ;; -----------------------------------------------
 ;;  SNAPSHOT AT DATE FOR SINGLE COMMODITY ACCOUNT
@@ -79,6 +145,19 @@ Functions to perform financial calculation and provide numbers for views.
           (investment-snapshot-shares snapshot)
           (real->decimal-string (investment-snapshot-amount snapshot))))
 
+;; calculate new cost after shares sold
+(define (cost-after-sale current-cost current-shares share-diff)
+  (printf "current shares: ~a diff: ~a~%" current-shares share-diff)
+  (let* ([share-diff (abs share-diff)]
+        [cost-per-share (if (= 0 current-shares)
+                            0
+                            (/ current-cost current-shares))]
+        [new-shares (- current-shares share-diff)]
+        [new-cost (* cost-per-share new-shares)])
+    (printf "New cost: ~a~%" new-cost)
+    new-cost))
+        
+
 ;; find shares and amount for a list of splits (from a single transaction)
 ;; return a struct investment-snapshot
 (define (make-split-snapshot arg-date arg-splits arg-account-id)  
@@ -89,8 +168,10 @@ Functions to perform financial calculation and provide numbers for views.
         (investment-snapshot "" shares amount)         
         (let ([split (first splits)])
           (cond [(equal? (send split get-account-id) arg-account-id)
-                 (let* ([new-shares (+ shares (send split get-quantity))]
-                       [new-amount (+ amount (send split get-value))])
+                 (let* ([split-shares (send split get-quantity)]
+                        [new-shares (+ shares split-shares)]
+                        [current-value (send split get-value)]
+                        [new-amount (+ amount current-value)])
                  (loop (rest splits)
                        ; expenses and amount for next iteration
                        new-shares
@@ -123,12 +204,23 @@ Functions to perform financial calculation and provide numbers for views.
                   ;; in this let*, call make-split-snapshot for the current transaction
                   ;; and update the total shares and amount accordingly
                   [snapshot (make-split-snapshot arg-date splits arg-account-id)]
-                  [new-shares (+ (investment-snapshot-shares main-snapshot) (investment-snapshot-shares snapshot))]
-                  ; special case: if you sell everything (0 shares) then cost goes to $0
+                  [snapshot-shares (investment-snapshot-shares snapshot)]
+                  [snapshot-amount (investment-snapshot-amount snapshot)]
+                  [current-shares (investment-snapshot-shares main-snapshot)] ; in case shares sold
+                  [current-amount (investment-snapshot-amount main-snapshot)]
+                  [current-price-share (if (= 0 current-shares) 0 (/ current-amount current-shares))]
+                  [new-shares (+ current-shares snapshot-shares)]
+                  
+                  ; special case 1: if you sell everything (0 shares) then cost goes to $0
                   ; (gains/losses are realized, but that is out of scope for the snapshot)
-                  [new-amount (if (= 0 new-shares)
-                                  0
-                                  (+ (investment-snapshot-amount main-snapshot) (investment-snapshot-amount snapshot)))])
+
+                  ; special case 2: if shares decreased, there was a sale of shares,
+                  ; amount needs to be calculated accordingly
+                  [new-amount
+                   (cond [(= 0 new-shares) 0]
+                         [(< new-shares current-shares)
+                          (cost-after-sale current-amount current-shares snapshot-shares)]
+                         [else (+ snapshot-amount current-amount)])]) 
              ; loop until past the desired date
              (if (string>? (send trans get-date) arg-date)
                  main-snapshot
@@ -165,28 +257,85 @@ Functions to perform financial calculation and provide numbers for views.
 
 (define (demo arg-date)
   (displayln "DEMO IN FINANCE.RKT")
-  (let ([gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE)])
-    (printf "DATE: ~a~%" arg-date)
+  (let ([gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE)]
+        [all-account-roi '()])
     (for ([account (send gnucash-data holding-accounts)])
       (let ([fullname (send account get-fullname)]
             [children (send account get-children)])
-        (printf "~a~%" (repeat-char->string #\- 88))
-        (printf "~a~%"  fullname)
-        (printf "~a~%" (repeat-char->string #\- 88))
-        (printf "~a ~a ~a ~a ~a ~a ~a~%"
-                (~a "COMMODITY" #:min-width 14)
-                (~a "SHARES" #:min-width 8 #:align 'right)
-                (~a "PRICE" #:min-width 12 #:align 'right)
-                (~a "MKT VALUE" #:min-width 12 #:align 'right)
-                (~a "COST" #:min-width 12 #:align 'right)
-                (~a "GAIN/LOSS" #:min-width 12 #:align 'right)
-                (~a "ROI" #:min-width 12 #:align 'right))
-        (for ([child children])
-          ;(printf "~a~%"  (send child get-fullname))
-          (summary-roi-on-date gnucash-data child arg-date))))))
+        (let loop ([all-children children]
+                   [all-lines '()])
+          (if (empty? all-children)
+              (set! all-account-roi
+                    (append all-account-roi
+                            (list (account-roi account (summarize-roi-lines all-lines) all-lines))))
+              (let ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])
+                (if (void? line)
+                    (loop (rest all-children) all-lines)
+                    (loop (rest all-children) (append all-lines (list line)))))))))
+    all-account-roi))
+                
+              
           ;(let ([snapshot (snapshot-on-closest-date gnucash-data (send child get-id) demo-date)])
           ;  (when (> (investment-snapshot-shares snapshot) 0)
           ;    (displayln (investment-snapshot-as-string snapshot)))))))))
 
+(define all-roi (demo demo-date))
 
-(demo demo-date)
+(print-list-account-roi all-roi)
+
+#|
+(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+(define gnucash-data (import-gnucash-file %path-data-file%))
+(define bmo-inv-id "13c0b98ed62cca3520c8f4bd500a9d63")
+(define dates (list "2014-11-06" "2016-07-19" "2017-03-06"))
+
+(define (snapshot-list-dates gnucash-data dates account-id)
+  (let ([account (send gnucash-data account-by-id account-id)])
+    (for ([date dates])
+          (printf "~a: ~a~%" date(investment-snapshot-as-string (snapshot-on-closest-date gnucash-data account-id date))))))
+
+(snapshot-list-dates gnucash-data dates bmo-inv-id)
+|#
+
+#|
+Adjusting the ACB after you sell shares. 
+
+When a sale transaction occurs, the new total ACB must be reduced from the previous total based on the number of shares that are sold. We will have a new total ACB and a new share count. 
+
+New Total ACB After a Sell Transaction = [Previous Total ACB] – ([ACB per Share] x [Number of Shares Sold]) 
+
+Here’s a simple example. 
+
+    Purchase 100 shares at $75 – $10 commission – 100 share count. 
+    Sell 50 shares at $100 – $10 commission – 50 share count. 
+
+Original ACB is $7500 + $10 for a $760 total with a share count of 100. 
+
+ACB per share is $75.10 
+
+------>
+Total ACB after sale. The capital gain does not affect the ACB per share, that is a separate tax event. 
+
+$7510 x (100 shares – 50 shares)  / 100 shares) = Total ACB of $3755
+
+ACB per share is still $75.10 but it is now based on 50 shares and that new Total ACB. 
+
+The ACB after the purchase. 
+
+50 shares at $125 + $10 = $6260 – new share count of 100. 
+
+Total ACB is now $6260 + $3755 = $10,015 
+
+ACB per share is now $10,015 / 100 = $100.15
+
+
+SUMMARIZE
+
+BUY 100 @ $75 - $10 comm = $760 => $75.10/shares
+SELL 50 - remainder 50 @ $75.10 =
+
+ALGORITHM
+1) calc current price per share: cost / shares
+2) reduce shares, cost is new share balance * original cost per share
+
+|#
