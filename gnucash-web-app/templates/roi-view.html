@@ -1,0 +1,45 @@
+<!-- 
+(struct roi-line (commo-id shares price value cost gain-loss roi))
+(struct account-roi (account total-roi-line child-roi-lines))
+-->
+@in[act-roi master-list-roi]{
+<h4>@(send (account-roi-account act-roi) get-name)</h4>
+<div style="max-width:600px">
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr class="roi-heading">
+                <th>Commodity</th>
+                <th class="text-right">Cost</th>
+                <th class="text-right">Market Value</th>
+                <th class="text-right">Gain/Loss</th>
+                <th class="text-right">ROI</th>
+            </tr>
+        </thead>
+        <tbody>
+            @in[commodity (account-roi-child-roi-lines act-roi)]{
+            <tr>
+                <td class="text-left">@(roi-line-commo-id commodity)</td>
+                <td class="text-right">@(real->decimal-string(roi-line-cost commodity))</td>
+                <td class="text-right">@(real->decimal-string(roi-line-value commodity))</td>
+                <td class="text-right">@(real->decimal-string(roi-line-gain-loss commodity))</td>
+                <td class="text-right">@(real->decimal-string(roi-line-roi commodity))%</td>
+            </tr>
+            }
+            <tr class="roi-heading">
+                <td class="text-left">TOTAL</td>
+                <td class="text-righ">@(real->decimal-string(roi-line-cost (account-roi-total-roi-line
+                    act-roi)))</td>
+                <td class="text-right">@(real->decimal-string(roi-line-value
+                    (account-roi-total-roi-line act-roi)))</td>
+                <td class="text-right">@(real->decimal-string(roi-line-gain-loss
+                    (account-roi-total-roi-line act-roi)))
+                </td>
+                <td class="text-right">@(real->decimal-string(roi-line-roi (account-roi-total-roi-line
+                    act-roi)))%</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<ul>
+</ul>
+}

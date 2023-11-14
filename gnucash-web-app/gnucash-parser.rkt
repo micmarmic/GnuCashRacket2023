@@ -8,8 +8,8 @@
   rackunit
   racket/gui/base)
 
-(require "gnucash-objects.rkt"
-         "views.rkt")
+(require "gnucash-objects.rkt")
+         ; link to views will cycle)
 
 (define %TEMPLATE-ROOT-FULLNAME% "Template Root")
 (define %ROOT-NAME% "Root Account")
@@ -431,7 +431,7 @@ main repo object.
 
 ;; TODO: MOVE TO OBJECTS
 
-
+#|
 
 ; return the investment-snapshot for the given account id on the date closest
 ; but not after the given date
@@ -466,7 +466,7 @@ main repo object.
                (if (void? final-share-balance)
                    (error (format "didn't find the share quantity for ~a on ~a~%" (send account get-name) date))
                    final-share-balance)]))))))
-
+|#
 (define (demo)
   (displayln "----------------------------")
   (displayln "         DEMO               ")

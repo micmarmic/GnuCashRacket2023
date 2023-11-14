@@ -12,6 +12,9 @@
 
 MODULE FINANCE
 
+==> call (roi-on-date) to get a list of account-roi for a web or text view
+    text view can be printed with (print-list-account-roi)
+
 Functions to perform financial calculation and provide numbers for views.
 
 See end of this module for explantion of ACB after selling shares
@@ -147,14 +150,12 @@ See end of this module for explantion of ACB after selling shares
 
 ;; calculate new cost after shares sold
 (define (cost-after-sale current-cost current-shares share-diff)
-  (printf "current shares: ~a diff: ~a~%" current-shares share-diff)
   (let* ([share-diff (abs share-diff)]
         [cost-per-share (if (= 0 current-shares)
                             0
                             (/ current-cost current-shares))]
         [new-shares (- current-shares share-diff)]
         [new-cost (* cost-per-share new-shares)])
-    (printf "New cost: ~a~%" new-cost)
     new-cost))
         
 
@@ -255,10 +256,8 @@ See end of this module for explantion of ACB after selling shares
   "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 (define demo-date "2022-12-31")
 
-(define (demo arg-date)
-  (displayln "DEMO IN FINANCE.RKT")
-  (let ([gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE)]
-        [all-account-roi '()])
+(define (roi-on-date gnucash-data arg-date)
+  (let ([all-account-roi '()])
     (for ([account (send gnucash-data holding-accounts)])
       (let ([fullname (send account get-fullname)]
             [children (send account get-children)])
@@ -278,11 +277,12 @@ See end of this module for explantion of ACB after selling shares
           ;(let ([snapshot (snapshot-on-closest-date gnucash-data (send child get-id) demo-date)])
           ;  (when (> (investment-snapshot-shares snapshot) 0)
           ;    (displayln (investment-snapshot-as-string snapshot)))))))))
+#|
+(define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
+(define roi-report (roi-on-date gnucash-data demo-date))
 
-(define all-roi (demo demo-date))
-
-(print-list-account-roi all-roi)
-
+(print-list-account-roi roi-report)
+|#
 #|
 (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 (define gnucash-data (import-gnucash-file %path-data-file%))

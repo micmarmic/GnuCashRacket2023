@@ -6,7 +6,8 @@
          racket/runtime-path ; build path to css files
          rackunit)
 
-(require "pagination.rkt")
+(require "pagination.rkt"
+         "finance.rkt")
 
 (provide (all-defined-out))
 
@@ -15,6 +16,19 @@
 (define BOOTSTRAP-COLOR-SPLIT "table-light") ;
 
 ;(define-runtime-path BASE-CSS-FILEPATH "static/css/base.css") ; to load as file
+
+;; ------------
+;;  ROI REPORT
+;; ------------
+
+(define (roi-report-view gnucash-data arg-date)
+  (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
+         [view-heading (format "ROI Report - ~a" arg-date)]
+         [page-title (format "~a | GnuCash" view-heading)]
+         [main-content-heading view-heading])
+    (response-200-base-template page-title main-content-heading
+                                    (include-template "templates/roi-view.html"))))
+
 
 ;; --------------
 ;; LEDGER HELPERS

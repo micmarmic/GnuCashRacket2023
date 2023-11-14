@@ -142,6 +142,8 @@ Images can be served statically using http-response-image.
 
 (define-values (dispatch generate-url)
                (dispatch-rules
+                [("roi-report" (string-arg))
+                 (lambda (request date) (roi-report-view %gnucash-data% date))]
                 ;; id page-number split-flag (s1 display splits, else just trans)
                 [("account" (string-arg) (integer-arg) (string-arg))
                  (lambda (request account-id page-num split-flag)
@@ -178,7 +180,7 @@ Images can be served statically using http-response-image.
    #:servlet-regexp #rx""))
 
 
-;(start-app)
+(start-app)
 
 ;; DEVELOPMENT
 
@@ -219,7 +221,7 @@ Images can be served statically using http-response-image.
 (printf "Length lines: ~a~%" (length lines))
 
 |#
-
+#|
 ;;
 ;; DEMO SNAPSHOT AT DATE
 ;;
@@ -229,11 +231,6 @@ Images can be served statically using http-response-image.
 (define bmo-inv-id "13c0b98ed62cca3520c8f4bd500a9d63")
 (define dates (list "2014-11-06" "2016-07-19" "2017-03-06"))
 
-(define (snapshot-list-dates gnucash-data dates account-id)
-  (let ([account (send gnucash-data account-by-id account-id)]
-  (for ([date dates])
-
-  
 
 
 (define account (send gnucash-data account-by-id reer-hxs-account-id))
@@ -254,3 +251,4 @@ Images can be served statically using http-response-image.
           (~r performance #:precision 1)))
 
 
+|#
