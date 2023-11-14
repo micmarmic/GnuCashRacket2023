@@ -23,6 +23,7 @@
 
 (define (roi-report-view gnucash-data arg-date)
   (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
+         [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
          [view-heading (format "ROI Report - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
          [main-content-heading view-heading])

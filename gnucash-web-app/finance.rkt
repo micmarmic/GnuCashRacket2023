@@ -54,9 +54,19 @@ See end of this module for explantion of ACB after selling shares
 ;; ------------
 
 
+
+
 (struct roi-line (commo-id shares price value cost gain-loss roi))
 
 (struct account-roi (account total-roi-line child-roi-lines))
+
+(define (calc-grand-total-list-account-roi list-account-roi)
+  (summarize-roi-lines
+   (map (lambda (act-roi)
+          (account-roi-total-roi-line act-roi))
+        list-account-roi)))
+    
+  
 
 (define (print-roi-line arg-line)
   (let* ([price (roi-line-price arg-line)]
