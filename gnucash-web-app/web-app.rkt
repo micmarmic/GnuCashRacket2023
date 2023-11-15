@@ -173,7 +173,8 @@ Images can be served statically using http-response-image.
   ;; Start the server.
   (serve/servlet
    request-handler
-   #:launch-browser? #f
+   #:launch-browser? #t
+   #:servlet-path "/"
    #:quit? #f
    #:listen-ip "127.0.0.1"
    #:port 8000

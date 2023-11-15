@@ -38,11 +38,9 @@
 (define (flatten-trans-splits list-trans-splits)
   (let ([final-list '()])
     (for ([item list-trans-splits])
-      ;(displayln item)
       (set! final-list (append final-list (list (car item))))
       (for ([split (rest item)])
         (set! final-list (append final-list split))))
-    ;(displayln final-list)
     final-list))
 
 ;; -----------
@@ -115,7 +113,6 @@
 ;; return a nav-package with values for previous, pages, next nav links
 ;; NOTE duplication with build uri
 (define (make-navigation page-uri num-items items-per-page current-page)
-  (displayln "")
   (let* ([split-uri (string-split page-uri "/")]
          [num-pages (ceiling (/ num-items items-per-page))]
          ;; new-uri needs leading /
@@ -135,7 +132,7 @@
                     (nav-link "#" "Next" "page-item disabled" " tabindex=\"-1\"")
                     (nav-link (string-append
                                "/" (first split-uri)  ; "/account"
-                               "/" (second split-uri) ; "/account-id"
+                               "/" (second split-uri) ; "/account-id"price-list-for-cmdty-id
                                "/" (~a (add1 current-page))  ; "/page-num 
                                "/" (last split-uri))      ; "/s0 or s1
                      "Previous"
@@ -218,7 +215,7 @@
            [trans-line
             (if show-splits
                 (bank-ledger-line
-                 (send trans get-date-posted)
+                 (send trans get-date)
                  (send trans get-description)
                  (send trans get-memo)
                  ""
@@ -228,7 +225,7 @@
                  (real->decimal-string new-balance)
                  BOOTSTRAP-COLOR-TRANSACTION)
                 (bank-ledger-line
-                 (send trans get-date-posted)
+                 (send trans get-date)
                  (send trans get-description)
                  (send trans get-memo)
                  (split-account-or-plus trans arg-account-id)
@@ -300,7 +297,7 @@
            [num-shares (investment-compiled-splits-num-shares compiled)]
            [new-balance (+ balance num-shares)]
            [trans-line (investment-ledger-line
-                        (send trans get-date-posted)
+                        (send trans get-date)
                         (send trans get-description)                        
                         "" ; account name
                         (real->decimal-string num-shares)
