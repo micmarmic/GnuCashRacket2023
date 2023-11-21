@@ -1,0 +1,19 @@
+
+  <!--  ================================================== 
+        Bootstrap core JavaScript
+        Placed at the end of the document so the pages load faster 
+		
+		DON'T LOAD THIS FILE IN VISUAL CODE BECAUSE IT MODIFIES THE @"@" REQUIRED
+		TO HAVE A LITERAL AT-SIGN IN A TEMPLATE
+		-->
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@"@"4.0.0/dist/js/bootstrap.min.js"
+    integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl"
+    crossorigin="anonymous"></script>
+
+  <!-- Icons -->
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+
+  <script>
+    feather.replace()
+  </script>

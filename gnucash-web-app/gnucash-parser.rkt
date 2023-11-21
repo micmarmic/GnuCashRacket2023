@@ -1,5 +1,15 @@
 #lang racket
 
+#|
+
+MODULE GNUCASH-PARSER
+
+Parse a GnuCash file into classes.
+Export a single function "import-gnucash-file" that returns a
+single "gnucash-data%" class working as a repository.
+|#
+
+
 (provide import-gnucash-file)
 
 (require
@@ -15,13 +25,6 @@
 (define %TEMPLATE-ROOT-FULLNAME% "Template Root")
 (define %ROOT-NAME% "Root Account")
 
- ;(struct-out test-struct))
-
-#|
-Parse a GnuCash file into data structures.
-Export the data structures individually instead of packaging them in a
-main repo object.
-|#
 
 (define HUGE-SAMPLE-GNUCASH-FILE
   "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
@@ -30,13 +33,12 @@ main repo object.
 (define TRUNCATED-GNUCASH-FILE
   "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\TRUNCATED.gnucash")
 
-;; -------------------
-;;   OBJECT MARKERS
-;; -------------------
+;; ---------------------------
+;;   GNUCASH DATA DEFINITIONS
+;; ---------------------------
 (define ACCOUNT-START "<gnc:account version=\"2.0.0\">")
 (define ACCOUNT-END "</gnc:account>")
 (define ACCOUNT-HIDDEN "<slot:key>")
-
 (define ACCOUNT-NAME "<act:name>")
 (define ACCOUNT-TYPE "<act:type>")
 (define ACCOUNT-GUID "<act:id type=\"guid\">")
@@ -62,13 +64,12 @@ main repo object.
 (define SPLIT-ACCOUNT-ID "<split:account type=\"guid\">")
 
 
-(define ALL-PRICES-START "<gnc:pricedb version=\"1\">")
-(define ALL-PRICES-END "</gnc:pricedb>")
+;(define ALL-PRICES-START "<gnc:pricedb version=\"1\">")
+;(define ALL-PRICES-END "</gnc:pricedb>")
 (define PRICE-START "<price>")
 (define PRICE-END "</price>")
 (define PRICE-START-COMMODITY "<price:commodity>")
 (define PRICE-END-COMMODITY "</price:commodity>")
-;; after commodity find commodity-id
 (define PRICE-COMMODITY-ID "<cmdty:id>")
 (define PRICE-VALUE "<price:value>")
 (define PRICE-DATE "<ts:date>")
@@ -81,62 +82,7 @@ main repo object.
 (define COMMODITY-SPACE "<cmdty:space>")
 
 
-;;------------------
-;;  IMPORT HELPERS
-;;------------------
 
-
-; is the trimmed string equal to the value?
-; "   bob" trimmed equals "bob"
-(define (trim-equal? str value)
-  (equal? (string-trim str) value))
-
-;; given a port, return the next-line, trimmed
-;; NOTE: some account description span many lines;
-;;       one may need to fix that here (loop and append until line ends in >)
-(define (next-line in)
-  (let ([line (read-line in 'any)])
-    (if (eof-object? line)
-        line
-        (string-trim line))))
-
-;; return the location of a character in a string, -1 if not found
-;; char must be passed as a character, like "a" is #\a
-(define (char-position str char)
-  (let ([len (string-length str)])
-    (let loop ([n 0])
-      (cond
-         [(equal? n len) -1]
-         [(equal? char (string-ref str n)) n]
-         [else (loop (add1 n))]))))
-   
-      
-
-;; extract inner string from xml-like element
-;; fix: some values in account description can be multiline
-;;      so, some lines don't have a start and finish
-;;      FIX is skip lines that don't start with '<'
-(define (element-value str)
-  (let ([str (string-trim str)])
-    (if (not (string-prefix? str "<"))
-        ""
-        (let ([index> (char-position str #\>)])
-          (if (not index>)
-              ""
-              ;; skip the first < and add 1 to index later
-              (let ([index< (char-position (substring str 1) #\<)])
-                (if (negative? index<)
-                    ""
-                    (substring str (+ 1 index>) (add1 index<)))))))))
-
-;; the required values is on the next line; skip one line after
-;; example:
-;;   <date>
-;;     <iso-date>2012-11-12</iso-date>
-;;   </date>
-;; arg in is what is needed; don't care about the value of the starting line like <date>
-(define (next-line-element-value in)
-    (element-value (next-line in)))
   
 ;;-------------------
 ;; IMPORT FUNCTIONS
@@ -170,9 +116,8 @@ main repo object.
         (cond
           [(string-prefix? line ACCOUNT-NAME)
            (send account set-name! value)]
-          ; in file, two file id hidden, but they only
-          ; exist for a HIDDEN account, so we only
-          ; need to check for ACCOUNT-HIDDEN
+          ; ACCOUNT-HIDDEN in only found if account is hidden
+          ; default in account% is  visible
           [(string-prefix? line ACCOUNT-HIDDEN)
            (send account set-visible! #f)]
           [(string-prefix? line ACCOUNT-PARENT-ID)
@@ -213,7 +158,6 @@ main repo object.
 ;; if you reach PRICE-END-COMMODITY, there was an error
 (define (import-commodity-id in)
   (let loop ([line (next-line in)])
-    ;(printf "line ~a~%" line)
     (cond
       ; found it!
       [(string-contains? line PRICE-COMMODITY-ID) (element-value line)]
@@ -223,8 +167,7 @@ main repo object.
       ; keep looking
       [else (loop (next-line in))])))
           
-  
-
+ 
 ;; import a single price 
 (define (import-price in)
   (let ([price (make-object price%)])
@@ -242,16 +185,12 @@ main repo object.
     price))
 
 
-;; import individual splits from split section in file
+;; loop throught splits section and add individual splits to collection
 (define (import-all-splits in)
-  ;; on entry, we just read the start of all splits 
-  ;; the next line is the start of single split, and we'll
-  ;; be handled/ignored by the import-single-split function
-  (let ([splits '()])
-    (for ([line (in-lines in)])
-      #:break (string-contains? line ALL-SPLITS-END)
-      (set! splits (cons (import-single-split in) splits)))
-  splits))
+  ; simplify with for/list
+  (for/list ([line (in-lines in)])
+    #:break (string-contains? line ALL-SPLITS-END)
+    (import-single-split in)))
     
 
 ;; read a transaction from the file and return it
@@ -275,8 +214,7 @@ main repo object.
           [(string-prefix? line ALL-SPLITS-START)
            (send transaction set-splits! (import-all-splits in))])))
   transaction))
-           ;;(tran-loop (next-line in)))))
-    ;(printf "IMPORTED transaction ~a~%" (send transaction get-id))
+    
     
 
 ;;-----------------------------
@@ -307,8 +245,8 @@ main repo object.
 (define (dispatch-line gnucash-data line in)
   (cond
     [(equal? line ACCOUNT-START) (send gnucash-data add-account! (import-account in))]
-    [(equal? line COMMODITY-START) (send gnucash-data add-commodity! (import-commodity in))]
-    [(equal? line PRICE-START)(send gnucash-data add-price! (import-price in))]
+    [(equal? line COMMODITY-START) (send gnucash-data add-commodity! (import-commodity in))]        
+    [(equal? line PRICE-START) (send gnucash-data add-price! (import-price in))]        
     [(equal? line TRANSACTION-START) (send gnucash-data add-transaction! (import-transaction in))]))
 
 
@@ -371,7 +309,6 @@ main repo object.
       (let ([account-name (send act get-name)]
             [account-id (send act get-id)] 
             [parent-id (send act get-parent-id)])
-        ;(printf "name: ~a parent-id: ~a (t-r-id: ~a)~%" account-name parent-id template-root-id)        
         (cond [(equal? account-name %ROOT-NAME%) (send gnucash-data set-root-account! act)]
               [(or (equal? account-name %TEMPLATE-ROOT-FULLNAME%) (equal? template-root-id parent-id))
               (send gnucash-data remove-account act)]
@@ -394,136 +331,61 @@ main repo object.
          (send account set-fullname! new-fullname)
          (loop (send parent get-parent)))])))
 
-;; ----------
-;;   DEMO
-;; ----------
 
+;;------------------
+;;  IMPORT HELPERS
+;;------------------
 
-(define (display-all-trans-for-bmo-mastercard gnucash-data)
-    (let ([account (send gnucash-data account-by-id "fb5d9af6c4776652cb2858d3ed9af4db")])
-      (displayln "ALL TRANSACTIONS IN 'BMO Mastercard'")
-      (displayln "------------------------------------")
-      (display-all-transactions-all-splits-in-account account)))
+; is the trimmed string equal to the value?
+; "   bob" trimmed equals "bob"
+(define (trim-equal? str value)
+  (equal? (string-trim str) value))
 
+;; given a port, return the next-line, trimmed
+;; NOTE: some account description span many lines;
+;;       one may need to fix that here (loop and append until line ends in >)
+(define (next-line in)
+  (let ([line (read-line in 'any)])
+    (if (eof-object? line)
+        line
+        (string-trim line))))
 
-(define (demo)
-  (displayln "----------------------------")
-  (displayln "         DEMO               ")
-  (displayln "----------------------------")
-  (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
-  (print-overview gnucash-data)
-  gnucash-data)
+;; return the location of a character in a string, -1 if not found
+;; char must be passed as a character, like "a" is #\a
+(define (char-position str char)
+  (let ([len (string-length str)])
+    (let loop ([n 0])
+      (cond
+         [(equal? n len) -1]
+         [(equal? char (string-ref str n)) n]
+         [else (loop (add1 n))]))))
+   
+;; extract inner string from xml-like element
+;; fix: some values in account description can be multiline
+;;      so, some lines don't have a start and finish
+;;      FIX is skip lines that don't start with '<'
+(define (element-value str)
+  (let ([str (string-trim str)])
+    (if (not (string-prefix? str "<"))
+        ""
+        (let ([index> (char-position str #\>)])
+          (if (not index>)
+              ""
+              ;; skip the first < and add 1 to index later
+              (let ([index< (char-position (substring str 1) #\<)])
+                (if (negative? index<)
+                    ""
+                    (substring str (+ 1 index>) (add1 index<)))))))))
 
-  ;(define gnucash-data (import-gnucash-file SMALL-SAMPLE-GNUCASH-FILE))
-  ;(print-overview gnucash-data)
-  ;(display-all-accounts gnucash-data )
-  ;(define first-tran (first (send gnucash-data get-list-transactions)))
-  ;(displayln first-tran)
-  ;(displayln (send first-tran as-string-single-line))
-  ;(let ([tran (first (send gnucash-data get-list-transactions))])
-  ;  (displayln (send tran as-string)))
-  ;(displayln (send  as-string))
-  ;(display-all-transactions gnucash-data)
-  ;(display-all-commodities gnucash-data)
-  ;(display-all-trans-for-bmo-mastercard gnucash-data)
-  #|
-  (let* ([prices-hash (send gnucash-data get-prices-by-cmdty-id)]
-         [price-lists (hash-values prices-hash)]
-         [flat-price-list (flatten price-lists)])
-    (printf "found ~a price-commodities~%" (hash-count prices-hash))    
-    (printf "first individual prices ~a~%" (length flat-price-list))
-    (for ([id (hash-keys prices-hash)])
-      (printf "======== ~a =======~%" id)
-      (for ([price (hash-ref prices-hash id)])
-        (printf "~a~%" (send price as-string)))))
-        ;(printf "~a~%" (send price as-string)))))
-  ;(displayln (send (price-on-closest-date gnucash-data "VEQT" "2023-08-30") as-string))
-  ;(displayln "")
+;; return the value on the next line
+;; example:
+;;   <date> <=== you are here
+;;     <iso-date>2012-11-12</iso-date> <==== you want this line
+;;   </date>
+;; arg in is the file handle
+(define (next-line-element-value in)
+    (element-value (next-line in)))
 
-  ;(filter (lambda (act) (send act is-holding?)) (send gnucash-data all-accounts))
-  (for ([account (filter (lambda (act) (send act is-holding?)) (send gnucash-data all-accounts))])
-    (displayln (send account get-fullname)))
-
-  (let ([account (send gnucash-data account-by-fullname "3. Investissements:NON-ENREGISTRÉ")])
-    (printf "type of ~a: ~a~%"  (send account get-name) (send account get-type))
-    (printf "is ~a an investment account? ~a~%" (send account get-name) (send account is-investment?))
-    (printf "is ~a a holding account? ~a~%" (send account get-name) (send account is-holding?)))
-
-  (for ([account (send gnucash-data holding-accounts)])
-    (let ([fullname (send account get-fullname)]
-          [commodity-id (send account get-commodity-id)]
-          [children (send account get-children)])
-      (printf "~a~%"  fullname)
-      (for ([child children])
-        (printf "    ~a (~a)~%" (send child get-name) (send child get-commodity-id)))))
-    
-|#  
-  #|
-  (define include-hidden (send gnucash-data accounts-sorted-by-fullname #t))
-  (define only-visible (send gnucash-data accounts-sorted-by-fullname))
-
-  (printf "total: ~a visible: ~a~%" (length include-hidden) (length only-visible))
-
-  (printf "visible by filter: ~a~%"
-          (length (filter (lambda (act) (send act is-visible?)) (send gnucash-data all-accounts))))
-|#
-#|
-  (let* ([accounts (send gnucash-data accounts-sorted-by-fullname)]
-        [list-fullname-depth (map (lambda (act) (list (send act get-fullname) (send act tree-depth))) accounts)])
-    (for ([fullname-depth list-fullname-depth])
-      (printf "~a - ~a~%" (second fullname-depth) (first fullname-depth))))
-|#
-
-  #|
-  (define date "2023-01-31")
-  (let* ([accounts (send gnucash-data accounts-sorted-by-fullname)]
-        [holding-accounts (filter (lambda (act) (send act is-holding?)) accounts)])
-    (for ([account holding-accounts])
-      (displayln (send account get-fullname))
-      (for ([child-account (send account get-children)])
-        ;(printf "    ~a~%" (send child-account get-name))
-        (let ([account-id (send child-account get-id)]
-              [account-name (send child-account get-name)])
-          (let([share-balance (shares-on-closest-date gnucash-data account-id date)])
-            (when (> share-balance 0)
-                (printf "   ~a: ~a ~a~%" account-name share-balance account-id)))))))
-  |#
-  
-  #|
-  (printf "date: ~a shares: ~a cost: ~a~%"
-          (investment-snapshot-date snapshot)
-          (investment-snapshot-share-balance snapshot)
-          (investment-snapshot-cost-basis snapshot))
-  |#
-  
-  #|
-  (define veqt-celi-account-id "9e4da09a00eb4fb4af256279ec1c1a78")
-  (define account (send gnucash-data account-by-id veqt-celi-id))
-  (define commodity-id (send account get-commodity-id))
-  (define date "2023-01-31")
-  (define share-balance (shares-on-closest-date gnucash-data veqt-celi-account-id date))
-  (define price (price-on-closest-date gnucash-data commodity-id date))
-  (displayln (real->decimal-string (* share-balance (send price get-value))))
-  
-  (define hxs-celi (send gnucash-data account-by-fullname "3. Investissements:CELI:HXS (CELI)"))
-  (define hxs-celi-id (send hxs-celi get-id))
-  (for ([trans (send hxs-celi transactions-sorted-by-date)])
-    ;(displayln (send trans get-date))
-    (displayln "------------------------")
-    (for ([split (send trans get-splits)])
-      (when (equal? (send split get-account-id) hxs-celi-id)
-          (printf "~a ~a ~a ~a~%"
-                  (send trans get-date)
-                  (send split get-quantity)
-                  (send split get-id)
-                  ))))
-  )
-  |#
-  
-  
-  
-
-;(demo)
 
 ;; --------------
 ;;   UNIT TESTS

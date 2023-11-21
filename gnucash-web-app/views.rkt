@@ -7,7 +7,8 @@
          rackunit)
 
 (require "pagination.rkt"
-         "finance.rkt")
+         "finance.rkt"
+         "simple-date.rkt")
 
 (provide (all-defined-out))
 
@@ -15,38 +16,73 @@
 (define BOOTSTRAP-COLOR-TRANSACTION "table-success") ; 
 (define BOOTSTRAP-COLOR-SPLIT "table-light") ;
 
+(define HTML-TEXT-INDENT "  ")
+
 ;(define-runtime-path BASE-CSS-FILEPATH "static/css/base.css") ; to load as file
 
 ;; ------------
 ;;  ROI REPORT
 ;; ------------
 
-(define (roi-report-view gnucash-data arg-date)
+(define (roi-report-view gnucash-data arg-date url)
+  (printf "ROI REPORT \n~a~%" arg-date)
   (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
          [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
          [view-heading (format "ROI Report - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
-         [main-content-heading view-heading])
-    (response-200-base-template page-title main-content-heading
+         [extra-javascript (include-template "static/js/date-selector.js")]
+         [main-content-heading view-heading]
+    [date-selector (make-date-selector gnucash-data arg-date url)])
+      (response-200-base-template page-title main-content-heading
                                     (include-template "templates/roi-view.html"))))
 
 
+; given a date, gnucash-data, return values needed in
+; date-selector.html
+; return: form-url, list of values for select year, month, day
+; with "selected" for the current one
+(struct select-option (value selected))
+; caveatlist of day is not dynamic - need javascript; always list 1 to 31; 
+(define (make-date-selector gnucash-data arg-date url)
+  (let* ([form-url "THE-URL"]
+        [year (string->number (substring arg-date 0 4))]
+        [month (string->number (substring arg-date 5 7))]
+        [day (string->number (substring arg-date 8 10))]
+        ; todo gnucash max-year min-year        
+        [year-options (make-list-select-option 2018 2023 year #f)]
+        [month-options (make-list-select-option 1 12 month #t)]
+        [day-options (make-list-select-option 1 31 day #t)])
+    (include-template "templates/date-selector.html")))
+
+
+; to is inclusive, from 1 to 3 -> 1 2 3
+(define (make-list-select-option from to selected ascending?)
+  (let ([options (for/list ([n (in-range from (add1 to))]) ; add1 to include to
+                   (select-option n (if (= n selected) "selected" "")))])
+    (if ascending? options (reverse options))))
+  
+(define (print-list-select-option lst)
+  (for ([opt lst])
+    (printf "~a ~a~%" (select-option-value opt) (select-option-selected opt))))
+
+; demo (print-list-select-option (make-list-select-option 1 12 4 #t))
 ;; --------------
 ;; LEDGER HELPERS
 ;; --------------
 
 (define (flatten-trans-splits list-trans-splits)
   (let ([final-list '()])
-    (for ([item list-trans-splits])
+    (for ([item (in-list list-trans-splits)])
       (set! final-list (append final-list (list (car item))))
-      (for ([split (rest item)])
+      (for ([split (in-list (rest item))])
         (set! final-list (append final-list split))))
+    (printf "length final-list ~a~%" (length final-list))
     final-list))
+
 
 ;; -----------
 ;; LEDGER VIEW
 ;; -----------
-
 ; expect page-uril /account/account-id/page-num/s0 or s1
 (define (make-split-toggle-link page-uri)
   ; some duplication in make-navigation, just once
@@ -91,10 +127,6 @@
           (response-200-base-template page-title main-content-heading
                                     (include-template "templates/bank-ledger.html"))))
     ))
-
-
-
-
 
 ;; all numbers are 1-based
 ;; current-page: the page the user is on
@@ -147,18 +179,6 @@
                                   (list (make-page-link page-uri page-num current-page))))]))])
       (nav-bundle previous all-links next))))
                              
-
-;; DEMO
-#|
-(displayln "navigation for \"account/2\" 51 10 6")
-(define bundle (make-navigation "account/2" 51 10 6))
-(display-nav-link (nav-bundle-prev-link bundle))
-(let ([links (nav-bundle-page-links bundle)])
-  (for ([link links])
-    (display-nav-link link)))
-(display-nav-link (nav-bundle-next-link bundle))
-|#
-
 ;; ------------
 ;; BANK LEDGERS
 ;; ------------
@@ -178,7 +198,7 @@
 
 (define (ledger-line->string line)
   ;(format "dt:~a desc:~a act:~a val:~a tot:~a bal:~a"
-  (format "~a ~a ~a ~a ~a ~a"
+  (format "~a ~a ~a ~a ~a ~a ~a ~a"
           (~a (bank-ledger-line-date line) #:width 12)
           (~a (bank-ledger-line-description line) #:width 30)
           (~a (bank-ledger-line-account-name line) #:width 30)
@@ -201,6 +221,9 @@
 
 ;; compile a list of ledger-lines for trans and splits in given account-id
 ;; page-number and items-per-page for pagination - see (sublist lst sublist-from sublist-len)
+;; FOR FULL LIST OF LEDGERS LINES, SET PAGE NUMBER TO < 0
+;; returns (list of (list linefortrans (list linesfor splits
+
 (define (bank-account->ledger-lines gnucash-data arg-account-id page-number split-flag items-per-page)
   (let* ([page-index (sub1 page-number)] ;work with 0-based page index, not 1-based page-number
          [account (send gnucash-data account-by-id arg-account-id)]
@@ -208,36 +231,36 @@
          [list-lines '()]
          [balance 0]
          [show-splits (equal? split-flag "s1")])
-   (for ([trans transactions])
+   (for ([trans (in-list transactions)])
      (let* ([compiled (compile-bank-splits (send trans get-splits) arg-account-id)]
-           [total (bank-compiled-splits-transaction-total compiled)]
-           [new-balance (+ balance total)]           
-           [trans-line
-            (if show-splits
-                (bank-ledger-line
-                 (send trans get-date)
-                 (send trans get-description)
-                 (send trans get-memo)
-                 ""
-                 "" ; quantity
-                 "" ; value
-                 (real->decimal-string total)
-                 (real->decimal-string new-balance)
-                 BOOTSTRAP-COLOR-TRANSACTION)
-                (bank-ledger-line
-                 (send trans get-date)
-                 (send trans get-description)
-                 (send trans get-memo)
-                 (split-account-or-plus trans arg-account-id)
-                 "" ; quantity
-                 "" ; value
-                 (real->decimal-string total)
-                 (real->decimal-string new-balance)
-                 BOOTSTRAP-COLOR-TRANSACTION))]
-           ;[split-lines (bank-compiled-splits-ledger-lines compiled)]
-           [split-lines (if show-splits
-                            (bank-compiled-splits-ledger-lines compiled)
-                            '())]
+            [total (bank-compiled-splits-transaction-total compiled)]
+            [new-balance (+ balance total)]           
+            [trans-line
+             (if show-splits
+                 (bank-ledger-line
+                  (send trans get-date)
+                  (send trans get-description)
+                  (send trans get-memo)
+                  ""
+                  "" 
+                  "" 
+                  (real->decimal-string total)
+                  (real->decimal-string new-balance)
+                  BOOTSTRAP-COLOR-TRANSACTION)
+                 (bank-ledger-line
+                  (send trans get-date)
+                  (send trans get-description)
+                  (send trans get-memo)
+                  (split-account-or-plus trans arg-account-id)
+                  ""
+                  ""
+                  (real->decimal-string total)
+                  (real->decimal-string new-balance)
+                  BOOTSTRAP-COLOR-TRANSACTION))]
+            ;[split-lines (bank-compiled-splits-ledger-lines compiled)]
+            [split-lines (if show-splits
+                             (bank-compiled-splits-ledger-lines compiled)
+                             '())]
            )
        ;; list list so trans info is not merged into big list
        (set! list-lines (append list-lines (list (list trans-line split-lines))))
@@ -249,13 +272,12 @@
         (take-n-from-x list-lines items-per-page (* (sub1 page-number)  items-per-page))
         list-lines)))
 
-
 ;; return a list of ledger-line struct and the amount of the transaction
 ;; use struct compiled-splits to return two values
 (define (compile-bank-splits arg-splits arg-account-id)
   (let ([result-lines '()]
         [amount 0])
-    (for ([split arg-splits])
+    (for ([split (in-list arg-splits)])
       (if (equal? (send split get-account-id) arg-account-id)
           ; split with current account: don't add a split
           ; set the transaction amount
@@ -280,8 +302,6 @@
 ;; INVESTMENT LEDGER
 ;; -----------------
 
-
-
 (struct investment-ledger-line (date description account-name quantity price value balance color-class))
 (struct investment-compiled-splits (ledger-lines num-shares))
 
@@ -292,7 +312,7 @@
          [transactions (send account transactions-sorted-by-date)]
          [list-lines '()]
          [balance 0])
-   (for ([trans transactions])
+   (for ([trans (in-list transactions)])
      (let* ([compiled (compile-investment-splits (send trans get-splits) arg-account-id)]
            [num-shares (investment-compiled-splits-num-shares compiled)]
            [new-balance (+ balance num-shares)]
@@ -322,7 +342,7 @@
 (define (compile-investment-splits arg-splits arg-account-id)
   (let ([result-lines '()]
         [num-shares 0])
-    (for ([split arg-splits])
+    (for ([split (in-list arg-splits)])
       (if (equal? (send split get-account-id) arg-account-id)
           ; split for current investement account: shares price amount
           (let* ([qty (send split get-quantity)]
@@ -381,12 +401,46 @@
 (define (account-list gnucash-data request)
   (let* ([root-account (send gnucash-data get-root-account)]
         [start-indent ""]
-        [list-html (children-tree root-account start-indent)]
+        ;[list-html (children-tree root-account start-indent)]
+        ;[list-html (format "<ul>~a</ul>" (account-tree root-account start-indent))]
+        [list-html (account-tree-no-root root-account start-indent)]
         [page-title "Accounts | GnuCash App"]
         [main-content-heading "Accounts"]
         [main-content (include-template "templates/account-list.html")])
-      (response-200-base-template page-title main-content-heading main-content)))
+    (response-200-base-template page-title main-content-heading main-content)))
 
+(define (account-tree-no-root root-account start-indent)
+  (let* ([account-tree (account-tree root-account start-indent)]
+        [num-lines (length account-tree)]
+        [trimmed-tree (if (<= num-lines 3) ; min tree is one account, 3 lines ul, li, /ul
+                          account-tree
+                          ; remove the first and last line,    
+                          (take-n-from-x account-tree (- num-lines 3) 2))])
+    (displayln (take-right account-tree 10))
+    (string-append (list-string->string trimmed-tree) "</ul>"))) ;; need a ul at the end?!
+  
+
+(define (account-tree account arg-indent)
+  (let* ([account-link-or-not
+          (if (> (send account num-transactions) 0)
+                    (account-link account)
+                    (send account get-name))]
+         [children (send account get-children)]
+         [children-tree (if (empty? children)
+                            '()
+                            (flatten (list "<ul>"
+                                  (for/list ([child (in-list children)])
+                                              (account-tree child (string-append arg-indent HTML-TEXT-INDENT)))
+                                           "</ul>")))])
+         (if (empty? children)
+             (list "<li>" account-link-or-not "</li>")
+             (flatten (list "<li>" account-link-or-not children-tree)))))
+
+           
+
+(define (list-string->string lst)
+  (foldr (lambda (s result) (string-append s "\n" result)) "" lst))
+#|
 (define (children-tree account arg-indent)
   (let loop ([children (send account get-children)]
              [results ""]
@@ -403,12 +457,12 @@
                     child-name)]
                [child-ul (if (empty? child-children)
                             (format "<li class=\"mb-2\">~a</li>~%" child-link-name)
-                            (format "<ul class=\"list-unstyled\"><li>~%~a<ul class=\"list-unstyle\">~%~a</ul></li></ul>~%"
+                            (format "<li>~%~a<ul class=\"list-unstyled\">~%~a</ul></li>~%"
                                     child-link-name
                                     (children-tree child indent)))])
           (loop (rest children) (string-append results child-ul) new-indent)))))
+
         
-#|    
 
 ; display the account list view
 ; pass a list of <a href...> to the template because empty account will
@@ -424,71 +478,31 @@
       (response-200-base-template page-title main-content-heading main-content)))
 |#
 
-;; build an html nested list of accounts with links of they have transaction
-;; use Bootstrap styling
-;;    <ul class="list-unstyled">
-;;      <li class="mb-2"><a href="uri-for-account">account name</a></li>
-;;    </ul>
-;; don't show root 
-;;   Expenses
-;;       Rent
-;;       Food
-;;   Income
-;;       Salary       
-(define (account-tree-view gnucash-data)
-  #t)
+;; ------------------------------
+;;  BALANCE IN LEDGER AS OF DATE
+;; ------------------------------
 
-
+(define (balance-of-ledger-on-closest-date gnucash-data ledger-lines arg-date)
+  (let loop ([lines ledger-lines] [found-balance null])
+    (if (empty? lines)
+        (if (null? found-balance)
+            (error (format "didn't find the balance on ~a~%" arg-date))
+            found-balance)
+        ; else (list is not empty)
+        (let* ([line (car lines)]
+               [date (bank-ledger-line-date line)])
+          (cond
+            [(equal? date arg-date) (bank-ledger-line-balance line)]
+            [(string<? date arg-date) (loop (rest lines) (bank-ledger-line-balance line))] ; closest price so far
+            [(string>? date arg-date)
+             (if (null? found-balance)
+                 (error (format "didn't find the balance on ~a~%" date))
+                 found-balance)])))
+  found-balance))
 
 ;; -------------
 ;; VARIOUS DEMOS
 ;; -------------
-
-#|
-(define (parents-demo request)
-  (struct parent (name children))
-  (struct child (name))
-  (define parents
-    (list
-     (parent "Josie"(list (child "Bill") (child "Linus")))
-     (parent "Jack"(list (child "Sam") (child "Shelly")))))
-  (define (ul-children parent)
-    (let ([children (parent-children parent)])    
-      (if (null? children)
-          "<p>NO CHILDREN</p>"
-          (include-template "templates/demo-children.html"))))                                                         
-  (define (ul-parents parents)
-    (include-template "templates/demo-parents.html"))
-  (let* ([page-title "Parents | GnuCash App"]
-        [main-content-heading "Parents"]
-        [main-content (ul-parents parents)])
-    (response-200-base-template page-title main-content-heading main-content)))
-|#
-(define (parents-demo request)
-  (struct parent (name children))
-  (define parents
-    (list
-     (parent "Max"
-             (list
-              (parent "Josie"
-                      (list (parent "Bill" '()) (parent "Linus"  '())))))
-     (parent "Jack"
-             (list
-              (parent "Sam"  '())
-              (parent "Shelly" '())))
-    ))
-  (let* ([page-title "Parents | GnuCash App"]
-        [main-content-heading "Parents"]
-        [main-content (include-template "templates/demo-children.html")])
-    (response-200-base-template page-title main-content-heading main-content)))
-  
-
-(define (hello-root request)
-  (let* ([page-title "Home | GnuCash App"]
-        [main-content-heading "Home"]
-        [main-content ""])
-    (response-200-base-template page-title main-content-heading main-content)))
-
 
 (define (dashboard request)
   (let* ([page-title "Dashboard | GnuCash App"]
@@ -502,24 +516,14 @@
   (let ([request-url (url->string (request-uri request))])
      (http-response-404 (format "Cannot dispatch URL: '~a'" request-url))))
 
-
-
-;; ----------
-;;  BASE CSS
-;; ----------
-(define (load-base-css)
-  ; if you load a file, it has to remain on disk
-  ;(file->string BASE-CSS-FILEPATH))
-  ; import-template is compiled with the program
-  (include-template "static/css/base.css"))
-
 ;; ----------------
 ;;  HTML RESPONSES
 ;; ----------------
 
 (define (response-200-base-template page-title main-content-heading main-content)
-  (let* ([base-css (load-base-css)]
-        [html (include-template "templates/base-template.html")])
+  (let* ([base-css (include-template "static/css/base.css")]
+         [bootstrap-js-links (include-template "templates/bootstrap-js-links.txt")]                  
+         [html (include-template "templates/base-template.html")])
     (http-response-200 html)))
 
 
@@ -543,24 +547,3 @@
     (list                ; Content (in bytes) to send to the browser.
       (string->bytes/utf-8 content))))
 
-;; ----------
-;; PAGINATION
-;; ----------
-
-#|
-<nav aria-label="...">
-  <ul class="pagination">
-    <li class="page-item disabled">
-      <a class="page-link" href="#" tabindex="-1">Previous</a>
-    </li>
-    <li class="page-item"><a class="page-link" href="#">1</a></li>
-    <li class="page-item active">
-      <a class="page-link" href="#">2 <span class="sr-only">(current)</span></a>
-    </li>
-    <li class="page-item"><a class="page-link" href="#">3</a></li>
-    <li class="page-item">
-      <a class="page-link" href="#">Next</a>
-    </li>
-  </ul>
-</nav>
-|#

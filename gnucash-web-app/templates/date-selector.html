@@ -1,0 +1,20 @@
+<div class="mb-3">
+    <form action="@|form-url|" method="get">
+        <select class="" id="inputYear">
+            @in[opt year-options]{
+            <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
+            }
+        </select>
+        <select class="" id="inputMonth">
+            @in[opt month-options]{
+            <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
+            }
+        </select>
+        <select class="" id="inputDay">
+            @in[opt day-options]{
+            <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
+            }
+        </select>
+        <input type="button" value="Go">
+    </form>
+</div>

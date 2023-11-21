@@ -1,10 +1,11 @@
+@date-selector
 <!-- 
 (struct roi-line (commo-id shares price value cost gain-loss roi))
 (struct account-roi (account total-roi-line child-roi-lines))
 -->
-@in[act-roi master-list-roi]{
-<h4>@(send (account-roi-account act-roi) get-name)</h4>
 <div style="max-width:600px">
+    @in[act-roi master-list-roi]{
+    <h4>@(send (account-roi-account act-roi) get-name)</h4>
     <table class="table table-striped table-sm">
         <thead>
             <tr class="roi-heading">
@@ -61,7 +62,9 @@
                 <td class="text-right">@(real->decimal-string(roi-line-roi grand-total-line))%</td>
             </tr>
         </tbody>
-        </tbody>
     </table>
 
 </div>
+<script>
+    @extra-javascript
+</script>

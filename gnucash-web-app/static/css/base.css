@@ -3,7 +3,9 @@ html {
 }
 
 .roi-heading th {
-   background-color: rgb(18, 161, 209);
+   /* component of icons */
+   background-color: #007bff;
+   color: white;
 }
 
 

@@ -117,12 +117,14 @@ See end of this module for explantion of ACB after selling shares
          [cost (investment-snapshot-amount snapshot)]
          [shares (investment-snapshot-shares snapshot)]
          [commo-id (investment-snapshot-commodity-id snapshot)])         
-    (when (> shares 0)
-      (let* ([price (send (price-on-closest-date gnucash-data commo-id arg-date) get-value)]
-            [value (* shares price)]
-            [gain-loss (- value cost)]
-            [roi (* 100 (/ gain-loss cost))])
-        (roi-line commo-id shares price value cost gain-loss roi)))))
+    (if (zero? shares)
+        null
+        (let* ([price (send (price-on-closest-date gnucash-data commo-id arg-date) get-value)]
+               [value (* shares price)]
+               [gain-loss (- value cost)]
+               [roi (if (zero? cost) 0 (* 100 (/ gain-loss cost)))])
+          (roi-line commo-id shares price value cost gain-loss roi))
+        )))
         #|
         (printf "~a ~a ~a ~a ~a ~a ~a~%"
                 (~a commo-id #:min-width 14)
@@ -139,7 +141,7 @@ See end of this module for explantion of ACB after selling shares
            (let* ([new-cost (+ (roi-line-cost line) (roi-line-cost result))]
                   [new-value (+ (roi-line-value line) (roi-line-value result))]
                   [gain-loss (- new-value new-cost)]
-                  [roi (* 100 (/ gain-loss new-cost))])
+                  [roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost)))])
              (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi)))
          (roi-line "TOTAL" 0 0 0 0 0 0)
          all-lines))
@@ -246,17 +248,21 @@ See end of this module for explantion of ACB after selling shares
 ; return the price (value of a price%) ON the exact date, or on the closest date LESS than the date
 (define (price-on-closest-date gnucash-data commodity-id arg-date)
   (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
-    (let loop ([prices price-list] [found-price (void)])
-      (let* ([price (car prices)]
-             [date (send price get-date)])
-        (cond
-          [(empty? price-list) (error (format "didn't find the price for ~a on ~a~%" commodity-id date))]
-          [(equal? date arg-date) price]
-          [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
-          [(string>? date arg-date)
-           (if (void? found-price)
-               (error (format "didn't find the price for ~a on ~a~%" commodity-id date))
-               (send found-price get-value))])))))
+    (let loop ([prices price-list] [found-price null])
+      (if (empty? prices)
+        (if (null? found-price)
+            (error (format "didn't find the price for ~a on ~a~%" commodity-id arg-date))
+            found-price)
+      ; else (list is not empty)
+        (let* ([price (car prices)]
+               [date (send price get-date)])
+          (cond
+            [(equal? date arg-date) price]
+            [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
+            [(string>? date arg-date)
+             (if (null? found-price)
+                 (error (format "didn't find the price for ~a on ~a~%" commodity-id date))
+                 found-price)]))))))
 
 ;; ------
 ;;  DEMO
@@ -266,6 +272,7 @@ See end of this module for explantion of ACB after selling shares
   "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 (define demo-date "2022-12-31")
 
+; return a list of account-roi
 (define (roi-on-date gnucash-data arg-date)
   (let ([all-account-roi '()])
     (for ([account (send gnucash-data holding-accounts)])
@@ -278,9 +285,11 @@ See end of this module for explantion of ACB after selling shares
                     (append all-account-roi
                             (list (account-roi account (summarize-roi-lines all-lines) all-lines))))
               (let ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])
-                (if (void? line)
+                (when (null? line) "DEBUG got a void line back")
+                (if (null? line)
                     (loop (rest all-children) all-lines)
                     (loop (rest all-children) (append all-lines (list line)))))))))
+    (printf "~a~%" all-account-roi)
     all-account-roi))
                 
               
