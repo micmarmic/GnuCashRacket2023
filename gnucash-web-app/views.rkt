@@ -30,9 +30,10 @@
          [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
          [view-heading (format "ROI Report - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
-         [extra-javascript (include-template "static/js/date-selector.js")]
          [main-content-heading view-heading]
-    [date-selector (make-date-selector gnucash-data arg-date url)])
+         [date-selector (make-date-selector gnucash-data arg-date url)]
+         [form-url (substring url 0 (- (string-length url) 10))]
+         [extra-javascript (include-template "static/js/date-selector.js")])
       (response-200-base-template page-title main-content-heading
                                     (include-template "templates/roi-view.html"))))
 
@@ -44,8 +45,7 @@
 (struct select-option (value selected))
 ; caveatlist of day is not dynamic - need javascript; always list 1 to 31; 
 (define (make-date-selector gnucash-data arg-date url)
-  (let* ([form-url "THE-URL"]
-        [year (string->number (substring arg-date 0 4))]
+  (let* ([year (string->number (substring arg-date 0 4))]
         [month (string->number (substring arg-date 5 7))]
         [day (string->number (substring arg-date 8 10))]
         ; todo gnucash max-year min-year        
@@ -416,25 +416,28 @@
                           account-tree
                           ; remove the first and last line,    
                           (take-n-from-x account-tree (- num-lines 3) 2))])
-    (displayln (take-right account-tree 10))
     (string-append (list-string->string trimmed-tree) "</ul>"))) ;; need a ul at the end?!
   
 
 (define (account-tree account arg-indent)
-  (let* ([account-link-or-not
+  (let* ([children (send account get-children)]
+         [account-link-or-not
           (if (> (send account num-transactions) 0)
                     (account-link account)
                     (send account get-name))]
-         [children (send account get-children)]
+         ; add span to expand, collapse if there are children
+         [account-link-or-not (if (empty? children)
+                                  account-link-or-not
+                                  (string-append "<span>" account-link-or-not "</span>"))]
          [children-tree (if (empty? children)
                             '()
-                            (flatten (list "<ul>"
+                            (flatten (list (format "~a<ul class=\"account-list\">" arg-indent)
                                   (for/list ([child (in-list children)])
                                               (account-tree child (string-append arg-indent HTML-TEXT-INDENT)))
-                                           "</ul>")))])
+                                           (format "~a~a" arg-indent "</ul>"))))])
          (if (empty? children)
-             (list "<li>" account-link-or-not "</li>")
-             (flatten (list "<li>" account-link-or-not children-tree)))))
+             (list (format "~a<li>" arg-indent) (format "~a~a~a" arg-indent arg-indent account-link-or-not) (format "~a</li>" arg-indent))
+             (flatten (list (format "~a<li>" arg-indent) (format "~a~a~a" arg-indent arg-indent account-link-or-not) children-tree)))))
 
            
 

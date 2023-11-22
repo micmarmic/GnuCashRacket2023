@@ -1,0 +1,36 @@
+<div class="mb-3">
+    <form action="javascript:;" onsubmit="goToDate()" method="get">
+        <select class="" id="inputYear">
+            <option selected value="2023">2023</option>
+            <option value="2022">2022</option>
+            <option value="2021">2021</option>
+        </select>
+        <select class="" id="inputMonth">
+            <option selected value="12">12</option>
+            <option value="2021">12</option>
+        </select>
+        <select class="" id="inputDay">
+            <option selected value="1">1</option>
+            <option value="2">2</option>
+        </select>
+        <input type="submit" value="Go">
+    </form>
+</div>
+
+<script>
+    function goToDate() {
+        const base_url = "http://localhost:8000/roi-report/"; /* @|form-url| */
+        var year = 2023;
+        var month = 4;
+        var day = 3;
+        var newURL = new URL(`${base_url}${year}-${pad(month, 2)}-${pad(day, 2)}`);
+        alert(newURL);
+        window.location.href = newURL;
+    }
+
+    function pad(num, size) {
+        num = num.toString();
+        while (num.length < size) num = "0" + num;
+        return num;
+    }
+</script>

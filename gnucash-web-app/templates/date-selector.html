@@ -1,5 +1,5 @@
 <div class="mb-3">
-    <form action="@|form-url|" method="get">
+    <form action="javascript:;" onsubmit="goToDate()" method="get">
         <select class="" id="inputYear">
             @in[opt year-options]{
             <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
@@ -15,6 +15,6 @@
             <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
             }
         </select>
-        <input type="button" value="Go">
+        <input type="submit" value="Go">
     </form>
 </div>

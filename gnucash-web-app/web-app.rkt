@@ -125,6 +125,7 @@ Images can be served statically using http-response-image.
 ;; -----------------------------------
 
 (define (get-url request)
+  (printf "====~a~%" (url->string (request-uri request)))
   (url->string (request-uri request)))
 
 (define-values (dispatch generate-url)
