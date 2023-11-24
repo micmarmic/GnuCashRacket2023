@@ -49,7 +49,11 @@
         [month (string->number (substring arg-date 5 7))]
         [day (string->number (substring arg-date 8 10))]
         ; todo gnucash max-year min-year        
-        [year-options (make-list-select-option 2018 2023 year #f)]
+        [year-options (make-list-select-option
+                       (send gnucash-data get-min-trans-year)
+                       (send gnucash-data get-max-trans-year)
+                       year
+                       #f)]
         [month-options (make-list-select-option 1 12 month #t)]
         [day-options (make-list-select-option 1 31 day #t)])
     (include-template "templates/date-selector.html")))
@@ -57,8 +61,9 @@
 
 ; to is inclusive, from 1 to 3 -> 1 2 3
 (define (make-list-select-option from to selected ascending?)
-  (let ([options (for/list ([n (in-range from (add1 to))]) ; add1 to include to
-                   (select-option n (if (= n selected) "selected" "")))])
+  (let ([options
+         (for/list ([n (in-range from (add1 to))]) ; add1 to include to
+           (select-option n (if (= n selected) "selected" "")))])
     (if ascending? options (reverse options))))
   
 (define (print-list-select-option lst)
@@ -75,8 +80,7 @@
     (for ([item (in-list list-trans-splits)])
       (set! final-list (append final-list (list (car item))))
       (for ([split (in-list (rest item))])
-        (set! final-list (append final-list split))))
-    (printf "length final-list ~a~%" (length final-list))
+        (set! final-list (append final-list split))))    
     final-list))
 
 

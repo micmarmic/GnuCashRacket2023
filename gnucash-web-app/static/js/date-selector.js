@@ -10,7 +10,6 @@ function goToDate() {
     var day = document.getElementById("inputDay").value;
     
     var newURL = `${host}${base_url}${year}-${pad(month, 2)}-${pad(day, 2)}`;
-    alert(newURL);
     location.replace(newURL);
 }
 
@@ -33,7 +32,6 @@ function resetDays() {
     var dt = new Date(year, month, 0); // day 0 == last day prev month
     var numDays = dt.getDate(); // getDay is day of week!!!
 
-    alert(numDays);
 
     /* add days */
     for (var i = 0; i<numDays; i++){
