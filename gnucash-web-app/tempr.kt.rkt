@@ -11,3 +11,5 @@
 (send p2 as-string)
 
 
+(define func-with-opt
+  (lambda 

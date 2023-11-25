@@ -6,6 +6,9 @@
 <div style="max-width:600px">
     @in[act-roi master-list-roi]{
     <h4>@(send (account-roi-account act-roi) get-name)</h4>
+    <p class="alert alert-danger @(class-for-hide-if-blank @(account-roi-error-message act-roi))">
+        Report is incomplete: @(account-roi-error-message act-roi)
+    </p>
     <table class="table table-striped table-sm">
         <thead>
             <tr class="roi-heading">

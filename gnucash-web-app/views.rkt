@@ -402,7 +402,7 @@
               (format "<a href=\"~a\">~a</a>" href account-name) 
               account-name)))
 
-(define (account-list gnucash-data request)
+(define (account-list-view gnucash-data request)
   (let* ([root-account (send gnucash-data get-root-account)]
         [start-indent ""]
         ;[list-html (children-tree root-account start-indent)]
@@ -410,8 +410,10 @@
         [list-html (account-tree-no-root root-account start-indent)]
         [page-title "Accounts | GnuCash App"]
         [main-content-heading "Accounts"]
-        [main-content (include-template "templates/account-list.html")])
-    (response-200-base-template page-title main-content-heading main-content)))
+        [message "Allo from account-list-view"]
+        [main-content (include-template "templates/account-list.html")]
+        )
+    (response-200-base-template page-title main-content-heading main-content message)))
 
 (define (account-tree-no-root root-account start-indent)
   (let* ([account-tree (account-tree root-account start-indent)]
@@ -527,10 +529,11 @@
 ;;  HTML RESPONSES
 ;; ----------------
 
-(define (response-200-base-template page-title main-content-heading main-content)
+(define (response-200-base-template page-title main-content-heading main-content [optional-message ""])
   (let* ([base-css (include-template "static/css/base.css")]
-         [bootstrap-js-links (include-template "templates/bootstrap-js-links.txt")]                  
-         [html (include-template "templates/base-template.html")])
+         [bootstrap-js-links (include-template "templates/bootstrap-js-links.txt")]
+         [html (include-template "templates/base-template.html")]
+         )
     (http-response-200 html)))
 
 
@@ -554,3 +557,13 @@
     (list                ; Content (in bytes) to send to the browser.
       (string->bytes/utf-8 content))))
 
+
+;; ------------------
+;;  TEMPLATE HELPERS
+;; ------------------
+
+;; return "d-none" from bootstrap to hide the element
+(define (class-for-hide-if-blank text)
+  (if (equal? "" text)
+      "d-none"
+      ""))

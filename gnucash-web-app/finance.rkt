@@ -42,9 +42,13 @@ See end of this module for explantion of ACB after selling shares
 ;;  HELPERS
 ;; ---------
 
-(define (freal value precision width)
+;; format value as real with given precision and with
+(define (freal value precision width)  
   ; using ~a with real converter because ~r separates the - sign from the number
-  (~a (real->decimal-string value) #:min-width width #:align 'right))
+  (cond [(null? value) ""]
+        [(list? value) "BUG! freal got list as value"]
+        [else (~a (real->decimal-string value) #:min-width width #:align 'right)]))
+
 
 (define (repeat-char->string char n)
   (build-string n (lambda (n) char)))
@@ -58,7 +62,7 @@ See end of this module for explantion of ACB after selling shares
 
 (struct roi-line (commo-id shares price value cost gain-loss roi))
 
-(struct account-roi (account total-roi-line child-roi-lines))
+(struct account-roi (account total-roi-line child-roi-lines error-message))
 
 (define (calc-grand-total-list-account-roi list-account-roi)
   (summarize-roi-lines
@@ -107,10 +111,12 @@ See end of this module for explantion of ACB after selling shares
     (print-roi-line (account-roi-total-roi-line account-data))))
 
 
-; return a commodity-summary for the account on the given date
+; return a roi-line for the account on the given date
+; return null if no shares
 ; combine the calculation of the shares and cost with the search for the price
 ; and the roi calculations
 ; notice: if there are no shares, there is no summary, and nothing is returned
+; if there are no prices for a given commodity, set roi to null to signal an issue
 (define (summary-roi-on-date gnucash-data account arg-date)
   (let* ([account-id (send account get-id)]
          [snapshot (snapshot-on-closest-date gnucash-data account-id arg-date)]      
@@ -119,12 +125,16 @@ See end of this module for explantion of ACB after selling shares
          [commo-id (investment-snapshot-commodity-id snapshot)])         
     (if (zero? shares)
         null
-        (let* ([price (send (price-on-closest-date gnucash-data commo-id arg-date) get-value)]
-               [value (* shares price)]
-               [gain-loss (- value cost)]
-               [roi (if (zero? cost) 0 (* 100 (/ gain-loss cost)))])
-          (roi-line commo-id shares price value cost gain-loss roi))
-        )))
+        (let ([price-obj (price-on-closest-date gnucash-data commo-id arg-date)])
+          (if (null? price-obj)
+              ;; if there is no price, set roi to null to signal an issue
+              (roi-line (format "~a: NO PRICE ON ~a" commo-id arg-date) shares 0 0 cost 0 0)
+              (let* ([price (send price-obj get-value)]
+                    [value (* shares price)]
+                    [gain-loss (- value cost)]
+                    [roi (if (zero? cost) 0 (* 100 (/ gain-loss cost)))])
+                (roi-line commo-id shares price value cost gain-loss roi)))))))
+        
         #|
         (printf "~a ~a ~a ~a ~a ~a ~a~%"
                 (~a commo-id #:min-width 14)
@@ -246,12 +256,16 @@ See end of this module for explantion of ACB after selling shares
 ;; --------------------------------------------------------------
 
 ; return the price (value of a price%) ON the exact date, or on the closest date LESS than the date
+; return null if there are no prices for this commodity
 (define (price-on-closest-date gnucash-data commodity-id arg-date)
   (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
     (let loop ([prices price-list] [found-price null])
       (if (empty? prices)
         (if (null? found-price)
-            (error (format "didn't find the price for ~a on ~a~%" commodity-id arg-date))
+            (block
+             (printf "price-on-closest-date: didn't find the price for ~a on ~a~%" commodity-id arg-date)
+             null
+             )
             found-price)
       ; else (list is not empty)
         (let* ([price (car prices)]
@@ -261,7 +275,9 @@ See end of this module for explantion of ACB after selling shares
             [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
             [(string>? date arg-date)
              (if (null? found-price)
-                 (error (format "didn't find the price for ~a on ~a~%" commodity-id date))
+                 (block
+                  (printf "price-on-closest-date: didn't find the price for ~a on ~a~%" commodity-id arg-date)
+                  null)
                  found-price)]))))))
 
 ;; ------
@@ -278,18 +294,38 @@ See end of this module for explantion of ACB after selling shares
     (for ([account (send gnucash-data holding-accounts)])
       (let ([fullname (send account get-fullname)]
             [children (send account get-children)])
+        ;; loop child accounts
         (let loop ([all-children children]
-                   [all-lines '()])
+                   [all-lines '()]
+                   [error-message ""])
           (if (empty? all-children)
+              ;; all children processed: return
               (set! all-account-roi
                     (append all-account-roi
-                            (list (account-roi account (summarize-roi-lines all-lines) all-lines))))
-              (let ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])
+                            (list (account-roi
+                                   account
+                                   (summarize-roi-lines all-lines)
+                                   all-lines
+                                   error-message))))
+              ;; process individual child
+              ;; line will be '() if there is no info returned
+              (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])                     
+                (printf "line: ~a" line)
                 (when (null? line) "DEBUG got a void line back")
                 (if (null? line)
-                    (loop (rest all-children) all-lines)
-                    (loop (rest all-children) (append all-lines (list line)))))))))
-    (printf "~a~%" all-account-roi)
+                    ; just loop with next child
+                    (loop (rest all-children) all-lines error-message)
+                    ; add line, update error message if required
+                    (let ([new-message
+                     ;; if roi is zero, there was an error, assuming missing price
+                          (if (not (zero? (roi-line-roi line)))
+                               error-message                         ; 
+                               (let* ([child-account-name (send (first all-children) get-name)]
+                                      [new-message (format "No prices for ~a" child-account-name)])
+                                 (if (equal? "" error-message)
+                                     new-message
+                                     (format "~a; ~a" error-message new-message))))])
+                      (loop (rest all-children) (append all-lines (list line)) new-message))))))))
     all-account-roi))
                 
               

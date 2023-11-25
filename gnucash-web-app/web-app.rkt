@@ -136,8 +136,8 @@ Images can be served statically using http-response-image.
                 [("account" (string-arg) (integer-arg) (string-arg))
                  (lambda (request account-id page-num split-flag)
                    (ledger-view %gnucash-data% account-id request page-num split-flag (get-url request)))]
-                [("accounts") (lambda (request) (account-list %gnucash-data% request))]
-                [("") (lambda (request) (account-list %gnucash-data% request))]
+                [("accounts") (lambda (request) (account-list-view %gnucash-data% request))]
+                [("") (lambda (request) (account-list-view %gnucash-data% request))]
                 [("dashboard") dashboard]
                 [else generic-404]))
 
