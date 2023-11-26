@@ -60,7 +60,7 @@ See end of this module for explantion of ACB after selling shares
 
 
 
-(struct roi-line (commo-id shares price value cost gain-loss roi))
+(struct roi-line (commo-id shares price value cost gain-loss roi error-message))
 
 (struct account-roi (account total-roi-line child-roi-lines error-message))
 
@@ -127,13 +127,13 @@ See end of this module for explantion of ACB after selling shares
         null
         (let ([price-obj (price-on-closest-date gnucash-data commo-id arg-date)])
           (if (null? price-obj)
-              ;; if there is no price, set roi to null to signal an issue
-              (roi-line (format "~a: NO PRICE ON ~a" commo-id arg-date) shares 0 0 cost 0 0)
+              ; no price!!
+              (roi-line commo-id shares 0 0 cost 0 0 (format "No price for ~a on ~a" commo-id arg-date))
               (let* ([price (send price-obj get-value)]
                     [value (* shares price)]
                     [gain-loss (- value cost)]
                     [roi (if (zero? cost) 0 (* 100 (/ gain-loss cost)))])
-                (roi-line commo-id shares price value cost gain-loss roi)))))))
+                (roi-line commo-id shares price value cost gain-loss roi "")))))))
         
         #|
         (printf "~a ~a ~a ~a ~a ~a ~a~%"
@@ -152,8 +152,8 @@ See end of this module for explantion of ACB after selling shares
                   [new-value (+ (roi-line-value line) (roi-line-value result))]
                   [gain-loss (- new-value new-cost)]
                   [roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost)))])
-             (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi)))
-         (roi-line "TOTAL" 0 0 0 0 0 0)
+             (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi "")))
+         (roi-line "TOTAL" 0 0 0 0 0 0 "")
          all-lines))
 
 ;; -----------------------------------------------
@@ -310,21 +310,19 @@ See end of this module for explantion of ACB after selling shares
               ;; process individual child
               ;; line will be '() if there is no info returned
               (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])                     
-                (printf "line: ~a" line)
-                (when (null? line) "DEBUG got a void line back")
                 (if (null? line)
                     ; just loop with next child
                     (loop (rest all-children) all-lines error-message)
                     ; add line, update error message if required
-                    (let ([new-message
-                     ;; if roi is zero, there was an error, assuming missing price
-                          (if (not (zero? (roi-line-roi line)))
-                               error-message                         ; 
-                               (let* ([child-account-name (send (first all-children) get-name)]
-                                      [new-message (format "No prices for ~a" child-account-name)])
-                                 (if (equal? "" error-message)
-                                     new-message
-                                     (format "~a; ~a" error-message new-message))))])
+                    (let* ([line-error (roi-line-error-message line)]
+                           [new-message
+                            (if (equal? "" line-error)
+                                error-message                         ; 
+                                (let* ([child-account-name (send (first all-children) get-name)])
+                                  (if (equal? "" error-message)
+                                      line-error
+                                      (format "~a; ~a" error-message line-error))))])
+                      (printf "line error: ~a new message: ~a~%" line-error new-message)
                       (loop (rest all-children) (append all-lines (list line)) new-message))))))))
     all-account-roi))
                 

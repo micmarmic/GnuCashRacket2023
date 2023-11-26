@@ -129,17 +129,17 @@ Images can be served statically using http-response-image.
   (url->string (request-uri request)))
 
 (define-values (dispatch generate-url)
-               (dispatch-rules
-                [("roi-report" (string-arg))
-                 (lambda (request date) (roi-report-view %gnucash-data% date (get-url request)))]
-                ;; id page-number split-flag (s1 display splits, else just trans)
-                [("account" (string-arg) (integer-arg) (string-arg))
-                 (lambda (request account-id page-num split-flag)
-                   (ledger-view %gnucash-data% account-id request page-num split-flag (get-url request)))]
-                [("accounts") (lambda (request) (account-list-view %gnucash-data% request))]
-                [("") (lambda (request) (account-list-view %gnucash-data% request))]
-                [("dashboard") dashboard]
-                [else generic-404]))
+  (dispatch-rules
+   [("roi-report" (string-arg))
+    (lambda (request date) (roi-report-view %gnucash-data% date (get-url request)))]
+   ;; id page-number split-flag (s1 display splits, else just trans)
+   [("account" (string-arg) (integer-arg) (string-arg))
+    (lambda (request account-id page-num split-flag)
+      (ledger-view %gnucash-data% account-id request page-num split-flag (get-url request)))]
+   [("accounts") (lambda (request) (account-list-view %gnucash-data% request))]
+   [("") (lambda (request) (account-list-view %gnucash-data% request))]
+   [("dashboard") dashboard]
+   [else generic-404]))
 
 (define (request-handler request)
   (printf "Request path: ~a~%" (url->string (request-uri request)))

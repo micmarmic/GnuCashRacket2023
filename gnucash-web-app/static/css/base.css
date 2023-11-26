@@ -2,12 +2,78 @@ html {
    font-size: 14px;
 }
 
-.roi-heading th {
+.roi-heading {
    /* component of icons */
-   background-color: #007bff;
-   color: white;
+   background-color: #95cfff;
 }
 
+.main-content-heading {
+  margin-left: 30px;
+}
+
+.report-section {
+   margin-left: 30px;
+   margin-top: 20px;
+   margin-bottom: 20px;
+   padding: 10px;
+   box-shadow: 5px 5px 25px 5px rgb(160, 172, 209);
+   border-radius: 5px;
+}
+
+
+.mw80p {
+   max-width: 80%;
+}
+
+.mw60p {
+   max-width: 60%;
+}
+
+.mw40p {
+   max-width: 40%;
+}
+
+
+.w400 {
+   width: 400px;
+}
+
+.w600 {
+   width: 600px;
+}
+
+.commodity-column {
+   width: 50px;   
+}
+
+.market-value-column {
+   width: 50px;
+}
+
+.value-column {
+   width: 50px;
+}
+
+
+.report-section td, th {
+   padding-left: 5px;   
+}
+
+.report-section h3 {
+   text-align: center;
+}
+
+.report-section table {
+   border-top-right-radius: 5px;
+   border-top-left-radius: 5px;
+   overflow: hidden;
+}
+
+.allocation-targets table {
+   width: 40%;
+}
+
+*/
 
 /* override bootstrap button to remove decoration on hover 
 .button-light:hover {
