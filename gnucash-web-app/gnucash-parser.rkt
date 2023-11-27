@@ -90,67 +90,67 @@ single "gnucash-data%" class working as a repository.
 
 ;; read a commodity from the file and return it
 (define (import-commodity in)
-  (let ([commodity (make-object commodity%)])
-    (for ([line (in-lines in)])
-      #:break (string-contains? line COMMODITY-END)
-      (let ([line (string-trim line)]        
-            [value (element-value line)])
-        (cond
-          [(string-prefix? line COMMODITY-NAME)
-           (send commodity set-name! value)]
-          [(string-prefix? line COMMODITY-ID)
-           (send commodity set-id! value)]
-          [(string-contains? line COMMODITY-FRACTION)
-           (send commodity set-fraction! value)]
-          [(string-prefix? line COMMODITY-SPACE)
-           (send commodity set-space! value)])))      
-    commodity))
+  (define commodity (make-object commodity%))
+  (for ([raw-line (in-lines in)])
+    #:break (string-contains? raw-line COMMODITY-END)
+    (define line (string-trim raw-line))
+    (define value (element-value line))
+    (cond
+      [(string-prefix? line COMMODITY-NAME)
+       (send commodity set-name! value)]
+      [(string-prefix? line COMMODITY-ID)
+       (send commodity set-id! value)]
+      [(string-contains? line COMMODITY-FRACTION)
+       (send commodity set-fraction! value)]
+      [(string-prefix? line COMMODITY-SPACE)
+       (send commodity set-space! value)]))
+  commodity)
 
 ;; read an account from the file and return it
 (define (import-account in)
-  (let ([account (make-object account%)])
-    (for ([line (in-lines in)])
-      #:break (string-contains? line ACCOUNT-END)
-      (let ([line (string-trim line)]
-            [value (element-value line)])
-        (cond
-          [(string-prefix? line ACCOUNT-NAME)
-           (send account set-name! value)]
-          ; ACCOUNT-HIDDEN in only found if account is hidden
-          ; default in account% is  visible
-          [(string-prefix? line ACCOUNT-HIDDEN)
-           (send account set-visible! #f)]
-          [(string-prefix? line ACCOUNT-PARENT-ID)
-           (send account set-parent-id! value)]
-          [(string-contains? line ACCOUNT-COMMODITY-ID)
-           (send account set-commodity-id! value)]
-          [(string-contains? line ACCOUNT-GUID)
-           (send account set-id! value)]
-          [(string-prefix? line ACCOUNT-TYPE)
-           (send account set-type! value)])))
-    account))
+  (define account (make-object account%))
+  (for ([raw-line (in-lines in)])
+    #:break (string-contains? raw-line ACCOUNT-END)
+    (define line (string-trim raw-line))
+    (define value (element-value line))
+    (cond
+      [(string-prefix? line ACCOUNT-NAME)
+       (send account set-name! value)]
+      ; ACCOUNT-HIDDEN in only found if account is hidden
+      ; default in account% is  visible
+      [(string-prefix? line ACCOUNT-HIDDEN)
+       (send account set-visible! #f)]
+      [(string-prefix? line ACCOUNT-PARENT-ID)
+       (send account set-parent-id! value)]
+      [(string-contains? line ACCOUNT-COMMODITY-ID)
+       (send account set-commodity-id! value)]
+      [(string-contains? line ACCOUNT-GUID)
+       (send account set-id! value)]
+      [(string-prefix? line ACCOUNT-TYPE)
+       (send account set-type! value)]))
+  account)
 
 ;; read a single split from the file and return it
 (define (import-single-split in)
-  (let ([split (make-object split%)])
-    (for ([line (in-lines in)])
-      #:break (string-contains? line SPLIT-END)
-      (let* ([line (string-trim line)]
-             [value (element-value line)])
-        (cond
-          [(string-prefix? line SPLIT-ID)
+  (define split (make-object split%))
+  (for ([raw-line (in-lines in)])
+    #:break (string-contains? raw-line SPLIT-END)
+    (define line (string-trim raw-line))
+    (define value (element-value line))
+    (cond
+      [(string-prefix? line SPLIT-ID)
            (send split set-id! value)]
-          [(string-prefix? line SPLIT-VALUE)
-           (send split set-value! (string->number value))]
-          [(string-contains? line SPLIT-QUANTITY)
-           (send split set-quantity! (string->number value))]
-          [(string-contains? line SPLIT-MEMO)
-           (send split set-memo! value)]
-          [(string-contains? line SPLIT-ACTION)
-           (send split set-action! value)]
-          [(string-prefix? line SPLIT-ACCOUNT-ID)
-           (send split set-account-id! value)])))
-    split))
+      [(string-prefix? line SPLIT-VALUE)
+       (send split set-value! (string->number value))]
+      [(string-contains? line SPLIT-QUANTITY)
+       (send split set-quantity! (string->number value))]
+      [(string-contains? line SPLIT-MEMO)
+       (send split set-memo! value)]
+      [(string-contains? line SPLIT-ACTION)
+       (send split set-action! value)]
+      [(string-prefix? line SPLIT-ACCOUNT-ID)
+       (send split set-account-id! value)]))
+  split)
 
 ;; extract the commodity-id from one of the following lines
 ;; assume you were just on line PRICE-START-COMMODITY
@@ -170,19 +170,19 @@ single "gnucash-data%" class working as a repository.
  
 ;; import a single price 
 (define (import-price in)
-  (let ([price (make-object price%)])
-    (for ([line (in-lines in)])
-      #:break (string-contains? line PRICE-END)
-      (let* ([line (string-trim line)]
-             [value (element-value line)])
-        (cond
-          [(string-prefix? line PRICE-DATE)
-           (send price set-date! (substring value 0 10))]
-          [(string-prefix? line PRICE-VALUE)
-           (send price set-value! (string->number value))]
-          [(string-contains? line PRICE-START-COMMODITY)
-           (send price set-commodity-id! (import-commodity-id in))])))
-    price))
+  (define price (make-object price%))
+  (for ([raw-line (in-lines in)])
+    #:break (string-contains? raw-line PRICE-END)
+    (define line (string-trim raw-line))
+    (define value (element-value line))
+    (cond
+      [(string-prefix? line PRICE-DATE)
+       (send price set-date! (substring value 0 10))]
+      [(string-prefix? line PRICE-VALUE)
+       (send price set-value! (string->number value))]
+      [(string-contains? line PRICE-START-COMMODITY)
+       (send price set-commodity-id! (import-commodity-id in))]))
+  price)
 
 
 ;; loop throught splits section and add individual splits to collection
@@ -195,25 +195,24 @@ single "gnucash-data%" class working as a repository.
 
 ;; read a transaction from the file and return it
 (define (import-transaction in)
-  (let ([transaction (make-object transaction%)])
-    ;;(let tran-loop ([line (next-line in)])
-    (for ([line (in-lines in)])
-      #:break (equal? line TRANSACTION-END)
-      (let* ([line (string-trim line)]
-             [value (element-value line)])
-        (cond
-          [(string-prefix? line TRANSACTION-DESCRIPTION)           
-           (send transaction set-description! value)]
-          [(string-prefix? line TRANSACTION-MEMO)
-             (send transaction set-memo! value)]
-          [(string-prefix? line TRANSACTION-DATE-POSTED)
-           (send transaction set-date-posted!
-                 (substring (next-line-element-value in) 0 10))]
-          [(string-contains? line TRANSACTION-ID)
-           (send transaction set-id! value)]
-          [(string-prefix? line ALL-SPLITS-START)
-           (send transaction set-splits! (import-all-splits in))])))
-  transaction))
+  (define transaction (make-object transaction%))  
+  (for ([raw-line (in-lines in)])
+    #:break (equal? raw-line TRANSACTION-END)
+    (define line (string-trim raw-line))
+    (define value (element-value line))
+    (cond
+      [(string-prefix? line TRANSACTION-DESCRIPTION)           
+       (send transaction set-description! value)]
+      [(string-prefix? line TRANSACTION-MEMO)
+       (send transaction set-memo! value)]
+      [(string-prefix? line TRANSACTION-DATE-POSTED)
+       (send transaction set-date-posted!
+             (substring (next-line-element-value in) 0 10))]
+      [(string-contains? line TRANSACTION-ID)
+       (send transaction set-id! value)]
+      [(string-prefix? line ALL-SPLITS-START)
+       (send transaction set-splits! (import-all-splits in))]))
+  transaction)
     
     
 
@@ -292,29 +291,29 @@ single "gnucash-data%" class working as a repository.
 (define (account-metadata gnucash-data)
   ;; we define it here because we can't search by full-name yet since metadata is not built
   ;; after this, search by fullname if needed?
-  (let ([accounts (send gnucash-data all-accounts)]
-        [template-root-id
-         (let ([act (send gnucash-data account-by-fullname %TEMPLATE-ROOT-FULLNAME%)])
-               (if (null? act) null (send act get-id)))])                                          
+  (define accounts (send gnucash-data all-accounts))
+  (define template-root-id
+    (let ([act (send gnucash-data account-by-fullname %TEMPLATE-ROOT-FULLNAME%)])
+               (if (null? act) null (send act get-id))))                                          
     ; link to parent object
-    (for ([act (in-list accounts)])
-      (let ([parent-id (send act get-parent-id)])
-        (cond [(not (equal? "" parent-id))
-             ; set-parent! also adds account as child to that parent
-            (send act set-parent! (send gnucash-data account-by-id parent-id))])))
-    ; remove templates; yes we loop again
-    ; identify root
-    ; build full name with recursive function
-    (for ([act (in-list (send gnucash-data all-accounts))])
-      (let ([account-name (send act get-name)]
-            [account-id (send act get-id)] 
-            [parent-id (send act get-parent-id)])
-        (cond [(equal? account-name %ROOT-NAME%) (send gnucash-data set-root-account! act)]
-              [(or (equal? account-name %TEMPLATE-ROOT-FULLNAME%) (equal? template-root-id parent-id))
-              (send gnucash-data remove-account act)]
-              [else (build-fullname act)])))
-
-    ))
+  (for ([act (in-list accounts)])
+    (define parent-id (send act get-parent-id))
+    (when (not (equal? "" parent-id))
+           ; set-parent! also adds account as child to that parent
+      (send act set-parent! (send gnucash-data account-by-id parent-id))))
+  ; remove templates; yes we loop again
+  ; identify root
+  ; build full name with recursive function
+  (for ([act (in-list (send gnucash-data all-accounts))])
+    (let ([account-name (send act get-name)]
+          [account-id (send act get-id)] 
+          [parent-id (send act get-parent-id)])
+      (cond [(equal? account-name %ROOT-NAME%) (send gnucash-data set-root-account! act)]
+            [(or (equal? account-name %TEMPLATE-ROOT-FULLNAME%) (equal? template-root-id parent-id))
+             (send gnucash-data remove-account act)]
+            [else (build-fullname act)])))
+  
+  )
 
 ;; prepend the parent name to the fullname of the account
 ;; recurse up the parent tree
@@ -323,13 +322,12 @@ single "gnucash-data%" class working as a repository.
   (send account set-fullname! (send account get-name))
   ; recursively read up the chain or parents
   (let loop ([parent (send account get-parent)])
-    (cond
-      [(not (or (void? parent) (equal? %ROOT-NAME% (send parent get-name))))
-       (let* ([fullname (send account get-fullname)]
-              [parent-name (send parent get-name)]
-              [new-fullname (string-append parent-name ":" fullname)])
-         (send account set-fullname! new-fullname)
-         (loop (send parent get-parent)))])))
+    (when (not (or (void? parent) (equal? %ROOT-NAME% (send parent get-name))))
+      (define fullname (send account get-fullname))
+      (define parent-name (send parent get-name))
+      (define new-fullname (string-append parent-name ":" fullname))
+      (send account set-fullname! new-fullname)
+      (loop (send parent get-parent)))))
 
 
 ;;------------------
@@ -353,29 +351,31 @@ single "gnucash-data%" class working as a repository.
 ;; return the location of a character in a string, -1 if not found
 ;; char must be passed as a character, like "a" is #\a
 (define (char-position str char)
-  (let ([len (string-length str)])
-    (let loop ([n 0])
-      (cond
-         [(equal? n len) -1]
-         [(equal? char (string-ref str n)) n]
-         [else (loop (add1 n))]))))
+  (define len (string-length str))
+  (let loop ([n 0])
+    (cond
+      [(equal? n len) -1]
+      [(equal? char (string-ref str n)) n]
+      [else (loop (add1 n))])))
    
 ;; extract inner string from xml-like element
 ;; fix: some values in account description can be multiline
 ;;      so, some lines don't have a start and finish
 ;;      FIX is skip lines that don't start with '<'
-(define (element-value str)
-  (let ([str (string-trim str)])
-    (if (not (string-prefix? str "<"))
-        ""
-        (let ([index> (char-position str #\>)])
-          (if (not index>)
-              ""
-              ;; skip the first < and add 1 to index later
-              (let ([index< (char-position (substring str 1) #\<)])
-                (if (negative? index<)
-                    ""
-                    (substring str (+ 1 index>) (add1 index<)))))))))
+(define (element-value in-str)
+  (define str (string-trim in-str))
+  (cond
+    [(not (string-prefix? str "<")) ""]
+    [else 
+     (define index> (char-position str #\>))
+     (cond
+       [(not index>) ""]
+       [else
+        ;; skip the first < and add 1 to index later
+        (define index< (char-position (substring str 1) #\<))
+        (if (negative? index<)
+            ""
+            (substring str (+ 1 index>) (add1 index<)))])]))
 
 ;; return the value on the next line
 ;; example:
@@ -391,7 +391,6 @@ single "gnucash-data%" class working as a repository.
 ;;   UNIT TESTS
 ;; --------------
 
-#|
 (check-eq? (char-position "allo" #\l) 1)
 (check-eq? (char-position "allo" #\x) -1)
 (check-equal? (element-value "<name>bob<df") "bob")
@@ -400,4 +399,3 @@ single "gnucash-data%" class working as a repository.
 (check-equal? (element-value "name><df") "") ;; element does not start with <
 (check-equal? (element-value "<name>asdfasdfa") "") ;; element doesn't end on same line: skip it
 (check-equal? (element-value "asdfafda</name>") "") ;; element ends here, but we don't have the start, so skip it
-|#

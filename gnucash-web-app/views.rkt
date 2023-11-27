@@ -10,7 +10,11 @@
          "finance.rkt"
          "simple-date.rkt")
 
-(provide (all-defined-out))
+(provide ledger-view
+         generic-404
+         dashboard-view
+         account-list-view
+         roi-report-view)
 
 
 (define BOOTSTRAP-COLOR-TRANSACTION "table-success") ; 
@@ -87,24 +91,24 @@
 ;; -----------
 ;; LEDGER VIEW
 ;; -----------
-; expect page-uril /account/account-id/page-num/s0 or s1
+; expect page-uril /account/account-id/page-num/hide or show
 (define (make-split-toggle-link page-uri)
   ; some duplication in make-navigation, just once
   (let* ([split-uri (string-split page-uri "/")]
-        [split-flag (if (equal? "s0" (last split-uri)) "s1" "s0")])
+        [split-flag (if (equal? "hide" (last split-uri)) "show" "hide")])
          ;; new-uri needs leading /
     ;                       "account"              account-id            page0-num          split
     (string-append "/" (first split-uri)  ; "/account"
                    "/" (second split-uri) ; "/account-id"
                    "/" (third split-uri)  ; "/page-num
-                   "/" split-flag)))      ; "/s0 or s1
+                   "/" split-flag)))      ; "/hide or show
 
 ;; process request for ledger view and trigger response
 ;; based on account-type, refer to bank or investment ledger
 (define (ledger-view gnucash-data arg-account-id request page-number split-flag page-url)
   (let* ([account (send gnucash-data account-by-id arg-account-id)]
          [link-toggle-splits (make-split-toggle-link page-url)]
-         [account-name (send account get-name)]
+         [account-name (send account get-fullname)]
          [view-heading  (format "~a" account-name)]
          [page-title (format "~a | GnuCash App" view-heading)]
          [main-content-heading view-heading]
@@ -142,7 +146,7 @@
                "/" (first split-uri)  ; "/account"
                "/" (second split-uri) ; "/account-id"
                "/" (~a page-num)  ; "/page-num 
-               "/" (last split-uri))]      ; "/s0 or s1
+               "/" (last split-uri))]      ; "/hide or show
          [li-class (if (= current-page page-num) "page-item active" "page-item")])
     (nav-link uri (~a page-num) li-class ""))) ; no tab-index
 
@@ -160,7 +164,7 @@
                      (string-append "/" (first split-uri)  ; "/account"
                                     "/" (second split-uri) ; "/account-id"
                                     "/" (~a (sub1 current-page))  ; "/page-num 
-                                    "/" (last split-uri))      ; "/s0 or s1
+                                    "/" (last split-uri))      ; "/hide or show
                      "Previous"
                      "page-item"
                      ""))] ; no tab-index
@@ -170,7 +174,7 @@
                                "/" (first split-uri)  ; "/account"
                                "/" (second split-uri) ; "/account-id"price-list-for-cmdty-id
                                "/" (~a (add1 current-page))  ; "/page-num 
-                               "/" (last split-uri))      ; "/s0 or s1
+                               "/" (last split-uri))      ; "/hide or show
                      "Previous"
                      "page-item"
                      ""))]) ; no tab-index
@@ -213,14 +217,18 @@
           (~a (bank-ledger-line-color-class line) #:width 20)))
 
 
-; if trans has only two splits (current account and other account)
-; return the account name, else "(plus)"
-(define (split-account-or-plus trans arg-account-id)
-  (let ([splits (send trans get-splits)])    
-    (cond [(= 2 (length splits))
-           (let ([other-split (car (filter (lambda (s) (not (equal? arg-account-id (send s get-account-id)))) splits))])
-             (send other-split get-account-name))]
-          [else "(plus)"])))
+;; if trans has only two splits (current account and other account)
+;; return the account name of the "other" account, else "(plus)"
+;; ex. in Chequing, split accounts Chequing and Rent, return Rent
+(define (split-account-name-or-plus trans arg-account-id)
+  (define splits (send trans get-splits))
+  (cond
+    [(not (= 2 (length splits))) "(plus)"]
+    [else 
+     (if (equal? (send (first splits) get-account-id) arg-account-id)
+         (send (second splits) get-account-name)         
+         (send (first splits) get-account-name))]))
+    
 
 
 ;; compile a list of ledger-lines for trans and splits in given account-id
@@ -234,9 +242,12 @@
          [transactions (send account transactions-sorted-by-date)]
          [list-lines '()]
          [balance 0]
-         [show-splits (equal? split-flag "s1")])
+         [show-splits (equal? split-flag "show")])
    (for ([trans (in-list transactions)])
-     (let* ([compiled (compile-bank-splits (send trans get-splits) arg-account-id)]
+     (let* ([compiled (compile-bank-splits
+                       (send trans get-splits)
+                       arg-account-id
+                       (send trans get-date))]
             [total (bank-compiled-splits-transaction-total compiled)]
             [new-balance (+ balance total)]           
             [trans-line
@@ -255,7 +266,7 @@
                   (send trans get-date)
                   (send trans get-description)
                   (send trans get-memo)
-                  (split-account-or-plus trans arg-account-id)
+                  (split-account-name-or-plus trans arg-account-id)
                   ""
                   ""
                   (real->decimal-string total)
@@ -278,28 +289,38 @@
 
 ;; return a list of ledger-line struct and the amount of the transaction
 ;; use struct compiled-splits to return two values
-(define (compile-bank-splits arg-splits arg-account-id)
-  (let ([result-lines '()]
-        [amount 0])
-    (for ([split (in-list arg-splits)])
-      (if (equal? (send split get-account-id) arg-account-id)
-          ; split with current account: don't add a split
-          ; set the transaction amount
-          (set! amount (send split get-value))
-          ; else: split for other account: create ledger line
-          (set! result-lines
-                (append result-lines
-                        (list ; 'list' in order to append to existing list
-                         (bank-ledger-line "" ; date
-                                           "" ; description
-                                           (send split get-memo)
-                                           (send split get-account-name)
-                                           (real->decimal-string (send split get-quantity))
-                                           (real->decimal-string (send split get-value))
-                                           "" ; total
-                                           "" ; balance
-                                           BOOTSTRAP-COLOR-SPLIT)))))) 
-    (bank-compiled-splits result-lines amount)))
+(define (compile-bank-splits arg-splits arg-account-id date-for-error)
+  ;; ERROR CHECK: don't assume there's only one split to the current account
+  ;; we found a transaction with two splits, both to the same account
+  (define splits-with-current-account
+    (filter (lambda (split)
+              (equal? arg-account-id (send split get-account-id)))       
+              arg-splits))  
+  (when (> (length splits-with-current-account) 1)
+    (error (format "FAILED. Transfer to same account ~a on ~a"
+                   (send (first arg-splits) get-account-name)
+                   date-for-error)))
+  (define result-lines '())
+  (define amount 0)
+  (for ([split (in-list arg-splits)])                                                     
+    (if (equal? (send split get-account-id) arg-account-id)
+        ; split with current account: don't add a split
+        ; set the transaction amount
+        (set! amount (send split get-value))
+        ; else: split for other account: create ledger line
+        (set! result-lines
+              (append result-lines
+                      (list ; 'list' in order to append to existing list
+                       (bank-ledger-line "" ; date
+                                         "" ; description
+                                         (send split get-memo)
+                                         (send split get-account-name)
+                                         (real->decimal-string (send split get-quantity))
+                                         (real->decimal-string (send split get-value))
+                                         "" ; total
+                                         "" ; balance
+                                         BOOTSTRAP-COLOR-SPLIT))))))
+  (bank-compiled-splits result-lines amount))
 
 
 ;; -----------------
@@ -397,7 +418,7 @@
 (define (account-link account)
   (let* ([num-trans (send account num-transactions)]
          [account-name (format "~a (~a)" (send account get-name) num-trans)]         
-         [href (string-append "/account/" (send account get-id) "/1/s0")]) ; default page 1, default: don't show splits
+         [href (string-append "/account/" (send account get-id) "/1/hide")]) ; default page 1, default: don't show splits
     (if (> (send account num-transactions) 0)
               (format "<a href=\"~a\">~a</a>" href account-name) 
               account-name)))
@@ -513,7 +534,7 @@
 ;; VARIOUS DEMOS
 ;; -------------
 
-(define (dashboard request)
+(define (dashboard-view request)
   (let* ([page-title "Dashboard | GnuCash App"]
         [main-content-heading "Dashboard"]
         [clients (list (list "Smith" "Mark") (list "Simpson" "Lou"))]

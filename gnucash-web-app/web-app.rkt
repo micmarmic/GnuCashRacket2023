@@ -18,6 +18,7 @@
 (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 ;(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
+;; TODO view status check: transfer to same account, unbalanced and orphaned transactions
 
 #|
 Basic webapp based on racket web-server.
@@ -109,9 +110,6 @@ Images can be served statically using http-response-image.
                             (ul-children (parent-children (first parents)))))))))
 |#
 
-(define (test-dispatch request text)
-  (http-response-200 text))
-
 #|
 (define (dashboard request)
   (let ([clients (list (list "Smith" "Mark") (list "Simpson" "Lou"))])
@@ -125,7 +123,7 @@ Images can be served statically using http-response-image.
 ;; -----------------------------------
 
 (define (get-url request)
-  (printf "====~a~%" (url->string (request-uri request)))
+  ;(printf "====~a~%" (url->string (request-uri request)))
   (url->string (request-uri request)))
 
 (define-values (dispatch generate-url)
@@ -138,7 +136,7 @@ Images can be served statically using http-response-image.
       (ledger-view %gnucash-data% account-id request page-num split-flag (get-url request)))]
    [("accounts") (lambda (request) (account-list-view %gnucash-data% request))]
    [("") (lambda (request) (account-list-view %gnucash-data% request))]
-   [("dashboard") dashboard]
+   [("dashboard") dashboard-view]
    [else generic-404]))
 
 (define (request-handler request)

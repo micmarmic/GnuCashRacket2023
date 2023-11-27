@@ -321,8 +321,7 @@ See end of this module for explantion of ACB after selling shares
                                 (let* ([child-account-name (send (first all-children) get-name)])
                                   (if (equal? "" error-message)
                                       line-error
-                                      (format "~a; ~a" error-message line-error))))])
-                      (printf "line error: ~a new message: ~a~%" line-error new-message)
+                                      (format "~a; ~a" error-message line-error))))])                      
                       (loop (rest all-children) (append all-lines (list line)) new-message))))))))
     all-account-roi))
                 
