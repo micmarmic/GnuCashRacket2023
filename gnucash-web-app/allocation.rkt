@@ -34,10 +34,54 @@ DIFFERENCE $           -$200 +$800 -$400  -$200
 4. INPUT SCENARIOS
 
 ASSET   AMOUNT
-Asset1    -100
+Asset1   1000
+
+Display new summary?
 
 --- REVISED SUMMARY ---
 MET
 
+|#
 
-#|
+;;
+;; STRUCT ALLOC-REC AND UTILS
+;;
+
+
+(struct alloc-rec (ca us intl fixed other) #:transparent)
+
+;;
+;; HARDCODED ALLOC FOR NOW
+;; 
+(define current-alloc-hash
+  (let ([hash (make-hash '())])
+    (hash-set! hash "BMO" (alloc-rec 100 0 0 0 0))
+    (hash-set! hash "HXS" (alloc-rec 0 100 0 0 0))
+    (hash-set! hash "VEQT" (alloc-rec  30 43 27 0 0))
+    (hash-set! hash "XIU" (alloc-rec 100 0 0 0 0))
+    (hash-set! hash "ZDM" (alloc-rec 0 0 100 0 0))
+    (hash-set! hash "MKB" (alloc-rec 0 0 0 100 0))
+    (hash-set! hash "FAKE" (alloc-rec 20 20 20 20 20))
+    hash))
+
+; add all the value in an allo-hash
+(define (total-alloc alloc)
+  (+ (alloc-rec-ca alloc)
+     (alloc-rec-us alloc)
+     (alloc-rec-intl alloc)
+     (alloc-rec-fixed alloc)
+     (alloc-rec-other alloc)))
+
+; return #t if all allocation totals are 100%
+; if debug is on, display which record is wrong
+(define (valid-alloc-hash? alloc-hash [debug #f])
+  (define result (andmap (lambda (alloc) (= 100 (total-alloc alloc))) (hash-values alloc-hash)))
+  (when (and (not result) debug)    
+    (for ([key (in-list (hash-keys alloc-hash))])
+      (define current-alloc (hash-ref alloc-hash key))
+      (displayln current-alloc)
+      (when (not (= 100 (total-alloc current-alloc)))
+        (printf "Total is not 100: ~a ~a~%" key current-alloc))))
+  result)
+
+(valid-alloc-hash? current-alloc-hash #t)

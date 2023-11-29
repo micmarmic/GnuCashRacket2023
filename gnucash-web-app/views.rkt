@@ -11,11 +11,20 @@
          "simple-date.rkt")
 
 (provide ledger-view
+         
          generic-404
+         response-200-base-template
+         exception-page
          dashboard-view
          account-list-view
          roi-report-view)
 
+;;
+;; DEBUG LET EXCEPTIONS RISE UP
+;;
+(define CATCH-EXCEPTIONS-ON #f)
+
+(struct my-exception exn:fail:user ())
 
 (define BOOTSTRAP-COLOR-TRANSACTION "table-success") ; 
 (define BOOTSTRAP-COLOR-SPLIT "table-light") ;
@@ -24,22 +33,35 @@
 
 ;(define-runtime-path BASE-CSS-FILEPATH "static/css/base.css") ; to load as file
 
+;;
+;; EXCEPTION HANDLER
+;; 
+(define (exn-handler e)
+  (if CATCH-EXCEPTIONS-ON
+      (exception-page (exn-message e))
+      (raise e)))
+
 ;; ------------
 ;;  ROI REPORT
 ;; ------------
 
+;  (with-handlers ([exn:fail? (λ (e) (printf "EXCEPTION: ~a~%" (exn-message e)))])
+
 (define (roi-report-view gnucash-data arg-date url)
-  (printf "ROI REPORT \n~a~%" arg-date)
-  (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
-         [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
-         [view-heading (format "ROI Report - ~a" arg-date)]
-         [page-title (format "~a | GnuCash" view-heading)]
-         [main-content-heading view-heading]
-         [date-selector (make-date-selector gnucash-data arg-date url)]
-         [form-url (substring url 0 (- (string-length url) 10))]
-         [extra-javascript (include-template "static/js/date-selector.js")])
+  ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
+  ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
+    (printf "ROI REPORT \n~a~%" arg-date)
+    (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
+           [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
+           [view-heading (format "ROI Report - ~a" arg-date)]
+           [page-title (format "~a | GnuCash" view-heading)]
+           [main-content-heading view-heading]
+           [date-selector (make-date-selector gnucash-data arg-date url)]
+           [form-url (substring url 0 (- (string-length url) 10))]
+           [extra-javascript (include-template "static/js/date-selector.js")])
+      (car '()) ; DEBUG fake error
       (response-200-base-template page-title main-content-heading
-                                    (include-template "templates/roi-view.html"))))
+                                  (include-template "templates/roi-view.html"))))
 
 
 ; given a date, gnucash-data, return values needed in
@@ -541,6 +563,13 @@
         [main-content (include-template "templates/My-Dashboard.html")])
     (response-200-base-template page-title main-content-heading main-content)))
 
+(define (exception-page e)
+  (define main-message (format "Caught the following exception: ~a" e))
+  (define view-heading (format "ERROR: ~a" e))
+  (define page-title "Exception | GnuCash App")
+  (define main-content-heading "ERROR")         
+  (define main-content main-message)
+  (response-200-base-template page-title main-content-heading main-content))
 
 (define (generic-404 request)
   (let ([request-url (url->string (request-uri request))])

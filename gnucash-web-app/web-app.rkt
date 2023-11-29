@@ -16,6 +16,9 @@
 ;;  CONFIG STRINGS
 ;; ----------------
 (define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+
+(define CATCH-EXCEPTIONS-ON #t)
+
 ;(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
 ;; TODO view status check: transfer to same account, unbalanced and orphaned transactions
@@ -117,6 +120,11 @@ Images can be served statically using http-response-image.
     (http-response-200 (include-template "templates/My-Dashboard.html"))))
 |#
 
+;;
+;; GENERIC EXCEPTION HANDLER
+;;
+
+;; Call this from the dispatch to wrap all calls in exception handler
 
 ;; -----------------------------------
 ;; URL routing table (URL dispatcher).
@@ -126,10 +134,15 @@ Images can be served statically using http-response-image.
   ;(printf "====~a~%" (url->string (request-uri request)))
   (url->string (request-uri request)))
 
+#|
+(with-handlers ([exn:fail? (λ (e) (printf "EXCEPTION: ~a~%" (exn-message e)))])
+  (raise (my-exception "FORCED ERROR" (current-continuation-marks))))
+|#
+
 (define-values (dispatch generate-url)
   (dispatch-rules
    [("roi-report" (string-arg))
-    (lambda (request date) (roi-report-view %gnucash-data% date (get-url request)))]
+    (lambda (request date) (roi-report-view %gnucash-data% date (get-url request)))]      
    ;; id page-number split-flag (s1 display splits, else just trans)
    [("account" (string-arg) (integer-arg) (string-arg))
     (lambda (request account-id page-num split-flag)
@@ -141,7 +154,10 @@ Images can be served statically using http-response-image.
 
 (define (request-handler request)
   (printf "Request path: ~a~%" (url->string (request-uri request)))
-  (dispatch request))
+  (if CATCH-EXCEPTIONS-ON
+      (with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
+        (dispatch request))
+      (dispatch request)))
 
 (define (start-app)
   ;; load the data
