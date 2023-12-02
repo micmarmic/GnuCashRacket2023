@@ -1,12 +1,34 @@
 #lang racket
 
+
+;; ** TESTS IN finance-test.rkt **
+
+; TODO remove racket/block
 (require racket/block)
+
+
+(require rackunit)
 
 (require "gnucash-objects.rkt"
          "gnucash-parser.rkt"
          )
 
-(provide (all-defined-out))
+(provide roi-on-date account-roi-account
+         calc-grand-total-list-account-roi
+         
+         account-roi-error-message
+         account-roi-child-roi-lines
+
+         roi-line-commo-id
+         roi-line-cost
+         roi-line-value
+         roi-line-gain-loss
+         roi-line-roi
+         account-roi-total-roi-line
+
+         ;; for finance-test.rkt
+         price-on-closest-date
+         )
 
 #|
 
@@ -19,7 +41,48 @@ Functions to perform financial calculation and provide numbers for views.
 
 See end of this module for explantion of ACB after selling shares
 
+
+HIERARCHY OF FUNCTIONS CALLS
+
+Called from report view
+
+1) roi-on-date
+
+     summary-roi-on-date: account on date
+       * summary-roi-on-date
+         price-on-closest-date
+	 price-list-for-cmdty-id
+	 roi-line-error-message
+
+   before returning account-roi
+      summarize-roi-lines
+
+2) calc-grand-total-list-account-roi
+
+Called from roi-view.html
+
+for struct roi-line
+   roi-line-commo-id
+   roi-line-cost
+   roi-line-value
+   roi-line-gain-loss
+   roi-line-roi
+
+from struct account-roi
+   account-roi-total-roi-line
+
+
+(define (summary-roi-on-date
+(define (summarize-roi-lines
+(define (investment-snapshot-as-string 
+(define (snapshot-on-closest-date
+(define (price-on-closest-date
+
+
 |#
+
+
+; TODO ROI should *NOT* include the value in cash, just the summary of the investments
 
 
 
@@ -53,11 +116,9 @@ See end of this module for explantion of ACB after selling shares
 (define (repeat-char->string char n)
   (build-string n (lambda (n) char)))
 
-;; ------------
-;;  ROI REPORT
-;; ------------
-
-
+;; --------------------------------
+;;  ROI DATA STRUCTURE AND HELPERS
+;; --------------------------------
 
 
 (struct roi-line (commo-id shares price value cost gain-loss roi error-message))
@@ -111,6 +172,10 @@ See end of this module for explantion of ACB after selling shares
     (print-roi-line (account-roi-total-roi-line account-data))))
 
 
+;; ------------------------------
+;;  ROI REPORT SUMMARY FUNCTIONS
+;; ------------------------------
+
 ; return a roi-line for the account on the given date
 ; return null if no shares
 ; combine the calculation of the shares and cost with the search for the price
@@ -122,7 +187,9 @@ See end of this module for explantion of ACB after selling shares
          [snapshot (snapshot-on-closest-date gnucash-data account-id arg-date)]      
          [cost (investment-snapshot-amount snapshot)]
          [shares (investment-snapshot-shares snapshot)]
-         [commo-id (investment-snapshot-commodity-id snapshot)])         
+         [commo-id (investment-snapshot-commodity-id snapshot)])
+    (printf "summary-roi-on-date ~a ~a" (send account get-name) arg-date)
+    (printf "commodity: ~a shares: ~a cost: ~a~%" commo-id shares cost)
     (if (zero? shares)
         null
         (let ([price-obj (price-on-closest-date gnucash-data commo-id arg-date)])
@@ -258,11 +325,12 @@ See end of this module for explantion of ACB after selling shares
 ; return the price (value of a price%) ON the exact date, or on the closest date LESS than the date
 ; return null if there are no prices for this commodity
 (define (price-on-closest-date gnucash-data commodity-id arg-date)
+  (printf "DEBUG commodity-id ~a~%" commodity-id)
   (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
     (let loop ([prices price-list] [found-price null])
       (if (empty? prices)
         (if (null? found-price)
-            (block
+            (block             
              (printf "price-on-closest-date: didn't find the price for ~a on ~a~%" commodity-id arg-date)
              null
              )
@@ -274,15 +342,12 @@ See end of this module for explantion of ACB after selling shares
             [(equal? date arg-date) price]
             [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
             [(string>? date arg-date)
-             (if (null? found-price)
-                 (block
-                  (printf "price-on-closest-date: didn't find the price for ~a on ~a~%" commodity-id arg-date)
-                  null)
-                 found-price)]))))))
+             ; may be null!
+             found-price]))))))
 
-;; ------
-;;  DEMO
-;; ------
+;; --------------------------
+;;  ROI REPORT MAIN FUNCTION
+;; --------------------------
 
 (define HUGE-SAMPLE-GNUCASH-FILE
   "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")

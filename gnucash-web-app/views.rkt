@@ -50,7 +50,6 @@
 (define (roi-report-view gnucash-data arg-date url)
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
-    (printf "ROI REPORT \n~a~%" arg-date)
     (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
            [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
            [view-heading (format "ROI Report - ~a" arg-date)]
@@ -59,7 +58,6 @@
            [date-selector (make-date-selector gnucash-data arg-date url)]
            [form-url (substring url 0 (- (string-length url) 10))]
            [extra-javascript (include-template "static/js/date-selector.js")])
-      (car '()) ; DEBUG fake error
       (response-200-base-template page-title main-content-heading
                                   (include-template "templates/roi-view.html"))))
 

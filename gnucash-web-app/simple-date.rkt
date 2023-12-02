@@ -26,17 +26,22 @@
 (define (end-last-month)
   (str-date-end-last-month (current-date)))
 
+
 ; input is struct-date
 (define (str-date-end-last-month struct-date)
   (let* ([day (date-day struct-date)]
         [month (date-month struct-date)]
         [year (date-year struct-date)]
         [last-month (if (= month 1) 12 (- month 1))]
-        [adjust-year (if (= month 12) (- year 1) year)]
+        [adjust-year (if (= last-month 12) (- year 1) year)]
         [last-day (days-in-month adjust-year last-month)]
-        [end-last-month (format "~a-~a-~a" adjust-year last-month last-day)])
+        [end-last-month (format "~a-~a-~a" adjust-year (~r last-month #:min-width 2 #:pad-string "0") last-day)])
     end-last-month))
-            
+
+(check-equal? (str-date-end-last-month (date 0 0 0 4 3 2024 0 0 #f 0)) "2024-02-29")
+(check-equal? (str-date-end-last-month (date 0 0 0 31 12 2023 0 0 #f 0)) "2023-11-30")
+(check-equal? (str-date-end-last-month (date 0 0 0 15 1 2024 0 0 #f 0)) "2023-12-31")
+
 
 ;(define test-date (date 0 0 0 14 3 2024 0 0 #f 0))
 ;(displayln (str-date-end-last-month test-date))

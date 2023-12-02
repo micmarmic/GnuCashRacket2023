@@ -1,0 +1,8 @@
+; commodity, ca, us, intl, fixed, other
+ALL-CA, 100, 0, 0, 0, 0
+ALL-US, 0, 100, 0, 0, 0
+ALL-INTL, 0, 0, 100, 0, 0
+ALL-FIXED, 0, 0, 0, 100, 0
+ALL-OTHER, 0, 0, 0, 0, 100
+MIX, 20, 10, 30, 20, 20
+

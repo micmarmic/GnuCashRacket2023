@@ -150,13 +150,15 @@
     
     (define/public (get-prices-by-cmdty-id) prices-by-cmdty-id)
 
+    (define/public (num-price-lists) (hash-count prices-by-cmdty-id))
+
     ; return a list of prices
     (define/public (price-list-for-cmdty-id id)
       (if (hash-has-key? prices-by-cmdty-id id) 
           (hash-ref prices-by-cmdty-id id)
           (block 
-           (display "INFO: no prices for ~a~%" id)
-           '())))
+           (printf "INFO: no prices for ~a~%" id)
+           null)))
           
 
     ; sort prices chronologically
@@ -201,14 +203,17 @@
 
 (define (print-overview gnucash)
   (displayln "")
-  (displayln "--------")
-  (displayln "OVERVIEW")
-  (displayln "--------")
+  (displayln "----------------")
+  (displayln "    OVERVIEW")
+  (displayln "----------------")
   (printf "File path: ~a~%" (send gnucash get-file-path))
   (printf "Number of accounts: ~a~%" (send gnucash num-accounts))
-  (printf "Number of transactions: ~a~%" (send gnucash num-transactions))
   (printf "Number of commodities: ~a~%" (send gnucash num-commodities))
-  (printf "Root account id: '~a'~%" (send (send gnucash get-root-account) get-id))
+  (printf "Number of commodities with prices: ~a~%" (send gnucash num-price-lists))
+  (define num-prices (foldr (lambda (lst-prices result) (+ result (length lst-prices)))
+                      0
+                      (hash-values (send gnucash get-prices-by-cmdty-id))))
+  (printf "Number of prices: ~a~%" num-prices)
   (displayln ""))
 
 ;; ------------
@@ -344,8 +349,16 @@
 ;; An price from the GnuCash file
 (define price%
   (class object%
+    (init init-commo)
+    (init init-date)
+    (init init-value)
+
+    (define commodity-id init-commo)
+    (define date init-date)
+    (define value init-value)
+    
     (super-new)
-    (field [commodity-id ""] [date "NO DATE FOUND"] [value 0.0])
+    ;(field [commodity-id ""] [date "NO DATE FOUND"] [value 0.0])
 
     (define/public (set-commodity-id! arg-id) (set! commodity-id arg-id))
     (define/public (set-date! arg-date) (set! date arg-date))
@@ -356,9 +369,12 @@
     (define/public (get-value) value)
 
     (define/public (as-string)
-      (format "~a ~a ~a~%" commodity-id date (real->decimal-string value)))
+      (format "commodity-id: ~a date: ~a value: ~a" commodity-id date (real->decimal-string value)))
     
 ))
+
+(define (make-vanilla-price)
+  (make-object price% "UNDEFINED" "1950-12-31" 0))
 
 ; <cmdty:id>
 ; <ts:date>2023-08-31 10:59:00 +0000</ts:date>

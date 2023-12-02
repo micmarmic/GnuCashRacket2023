@@ -1,4 +1,12 @@
- #lang racket
+#lang racket
+
+(provide file->alloc-hash)
+
+(require rackunit)
+
+(define HARD-CODED-ALLLOCATION-FILE "allocation-data.txt")
+(define TEST-ALLLOCATION-FILE "tests/test-allocation-data.txt")
+
 
 #|
 1. ASSET ALLOCATION
@@ -48,23 +56,21 @@ MET
 ;;
 
 
-(struct alloc-rec (ca us intl fixed other) #:transparent)
+(struct alloc-rec (commodity ca us intl fixed other) #:transparent)
 
-;;
-;; HARDCODED ALLOC FOR NOW
-;; 
-(define current-alloc-hash
-  (let ([hash (make-hash '())])
-    (hash-set! hash "BMO" (alloc-rec 100 0 0 0 0))
-    (hash-set! hash "HXS" (alloc-rec 0 100 0 0 0))
-    (hash-set! hash "VEQT" (alloc-rec  30 43 27 0 0))
-    (hash-set! hash "XIU" (alloc-rec 100 0 0 0 0))
-    (hash-set! hash "ZDM" (alloc-rec 0 0 100 0 0))
-    (hash-set! hash "MKB" (alloc-rec 0 0 0 100 0))
-    (hash-set! hash "FAKE" (alloc-rec 20 20 20 20 20))
-    hash))
+(define (list->alloc-rec lst)
+  (define (input->number input)
+    (cond [(number? input) input]
+          [(string? input) (string->number (string-trim input))]
+          [else (error "error: input->number only processes strings and numbers, not [~a]" input)]))        
+  (alloc-rec (first lst) ; first is string commodity, rest are numbers
+             (input->number (second lst))
+             (input->number (third lst))
+             (input->number (fourth lst))
+             (input->number (fifth lst))
+             (input->number  (sixth lst))))
 
-; add all the value in an allo-hash
+; add all the values in an allo-hash
 (define (total-alloc alloc)
   (+ (alloc-rec-ca alloc)
      (alloc-rec-us alloc)
@@ -84,4 +90,32 @@ MET
         (printf "Total is not 100: ~a ~a~%" key current-alloc))))
   result)
 
-(valid-alloc-hash? current-alloc-hash #t)
+
+;; ---------------------------
+;;  LOAD ALLOCATION FROM FILE
+;; ---------------------------
+
+(define (file->alloc-hash file-path)
+  (define alloc-hash (make-hash))
+  (define full-path (string-append (path->string (current-directory)) file-path))
+  (call-with-input-file file-path    
+    (lambda (in)
+      (for ([line (in-lines in)])
+        ; note: dispatch also advances the reading cursor in the file
+        (unless (string-prefix? line ";")
+          (define values (string-split line ","))
+          (hash-set*! alloc-hash (first values) (list->alloc-rec values))))))
+  alloc-hash)
+
+
+ 
+(define alloc-hash (file->alloc-hash HARD-CODED-ALLLOCATION-FILE))
+(valid-alloc-hash? alloc-hash #t)
+  
+
+;; -------
+;;  TESTS
+;; -------
+
+(define bad-alloc-hash (hash "BAD-TOTAL" (alloc-rec "Test" 3 3 3 3 3)))
+(check-false (valid-alloc-hash? bad-alloc-hash))

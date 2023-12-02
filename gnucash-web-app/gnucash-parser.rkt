@@ -170,7 +170,7 @@ single "gnucash-data%" class working as a repository.
  
 ;; import a single price 
 (define (import-price in)
-  (define price (make-object price%))
+  (define price (make-vanilla-price))
   (for ([raw-line (in-lines in)])
     #:break (string-contains? raw-line PRICE-END)
     (define line (string-trim raw-line))
@@ -222,7 +222,6 @@ single "gnucash-data%" class working as a repository.
 
 ; the GnuCash reader loops a GnuCash to the EOF and sends lines to the dispatch function
 (define (import-gnucash-file path)
-  (define start-seconds (current-seconds))
   (printf "Importing GnuCash data from ~a~%" path)
   (let ([gnucash (make-object gnucash-data%)])
    (send gnucash set-file-path! path)
@@ -233,9 +232,9 @@ single "gnucash-data%" class working as a repository.
         (dispatch-line gnucash (string-trim line) in))))
       
     (build-metadata gnucash)
-    (define end-seconds (current-seconds))
-    (printf "Import completed (~a seconds).~%" (- end-seconds start-seconds))
-    (printf "*************************************\nDEBUG num prices ~a~%" (hash-count (send gnucash get-prices-by-cmdty-id)))
+    ; clear temp list of transactions to (maybe) free resources
+    ; transactions are stored in accounts
+    (send gnucash clear-all-transactions)
     gnucash))
 
 ;; detect start of object definition and route to matching function

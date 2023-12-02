@@ -1,25 +1,29 @@
 #lang racket
-(require web-server/servlet)  ; Provides dispatch-rules.
-; Provides serve/servlet and happens to provide response/full.
-(require web-server/servlet-env
-         web-server/templates
-         
+(require web-server/servlet
+         web-server/servlet-env
+         web-server/templates         
          "gnucash-parser.rkt"
          "gnucash-objects.rkt"
          "views.rkt"
-         "finance.rkt")
+         "finance.rkt"
+         "allocation.rkt")
 
-(define %gnucash-data% (void)) ; global set in (start-app)
-(define %base-template-path% "templates/base-template.html")
+(define %global-gnucash-data% (void)) ; global set in (start-app)
+(define %global-allocation-data% (void)) ; global set in (start-app)
+;(define %base-template-path% "templates/base-template.html")
 
 ;; ----------------
 ;;  CONFIG STRINGS
 ;; ----------------
-(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file.gnucash")
+(define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
 
-(define CATCH-EXCEPTIONS-ON #t)
+(define CATCH-EXCEPTIONS-ON #f)
 
-;(define %path-data-file% "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
+
+
+;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
 ;; TODO view status check: transfer to same account, unbalanced and orphaned transactions
 
@@ -63,7 +67,7 @@ Images can be served statically using http-response-image.
 
 
 (define (account-details request id)
-  (let* ([account (send %gnucash-data% account-by-id id)]
+  (let* ([account (send %global-gnucash-data% account-by-id id)]
         [account-str (send account as-string)]
         [back-url "<a href=\"/accounts\">List accounts</a>"])
     (printf "Trying to get account id '~a'. Got: ~a" id account)
@@ -73,7 +77,7 @@ Images can be served statically using http-response-image.
   (define (accounts-names-urls)
     (define (name-url account)
       (list (send account get-name) (string-append "/account/" (send account get-id))))
-    (map name-url (send %gnucash-data% accounts-sorted-by-name)))
+    (map name-url (send %global-gnucash-data% accounts-sorted-by-name)))
   ;; TODO - current demo with clients and My-Dashboard
   (let* ([page-title "Accounts | GnuCash App"]
         [main-content-heading "Accounts"]
@@ -142,13 +146,13 @@ Images can be served statically using http-response-image.
 (define-values (dispatch generate-url)
   (dispatch-rules
    [("roi-report" (string-arg))
-    (lambda (request date) (roi-report-view %gnucash-data% date (get-url request)))]      
+    (lambda (request date) (roi-report-view %global-gnucash-data% date (get-url request)))]      
    ;; id page-number split-flag (s1 display splits, else just trans)
    [("account" (string-arg) (integer-arg) (string-arg))
     (lambda (request account-id page-num split-flag)
-      (ledger-view %gnucash-data% account-id request page-num split-flag (get-url request)))]
-   [("accounts") (lambda (request) (account-list-view %gnucash-data% request))]
-   [("") (lambda (request) (account-list-view %gnucash-data% request))]
+      (ledger-view %global-gnucash-data% account-id request page-num split-flag (get-url request)))]
+   [("accounts") (lambda (request) (account-list-view %global-gnucash-data% request))]
+   [("") (lambda (request) (account-list-view %global-gnucash-data% request))]
    [("dashboard") dashboard-view]
    [else generic-404]))
 
@@ -159,25 +163,27 @@ Images can be served statically using http-response-image.
         (dispatch request))
       (dispatch request)))
 
-(define (start-app)
-  ;; load the data
-  (printf "Loading data file '~a'~%" %path-data-file%) 
-  (set! %gnucash-data% (import-gnucash-file %path-data-file%))
+(define (start-app) 
+  (displayln "Loading configuration.")    
+  (set! %global-allocation-data% (file->alloc-hash DEFAULT-ALLOCATION-DATA-FILE))
+  (displayln "Configuration okay.")    
+  (displayln "")  
+
+  (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
+  (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))
   (printf "Loading data complete.~%")
-  (printf "Found ~a accounts.~%" (send %gnucash-data% num-accounts))
-  ; REDO account-based, not repo-based (print-overview %gnucash-data%)
-  (send %gnucash-data% clear-all-transactions)
-  
+  (displayln "")  
+  (print-overview %global-gnucash-data%)
+  (displayln "")  
+
   (printf "Launching the web server.~%")
   ;; Start the server.
-  (serve/servlet
-   request-handler
-   #:launch-browser? #t
-   #:servlet-path "/"
-   #:quit? #f
-   #:listen-ip "127.0.0.1"
-   #:port 8000
-   #:servlet-regexp #rx""))
-
+  (serve/servlet request-handler
+                 #:launch-browser? #t
+                 #:servlet-path "/"
+                 #:quit? #f
+                 #:listen-ip "127.0.0.1"
+                 #:port 8000
+                 #:servlet-regexp #rx""))
 
 (start-app)
