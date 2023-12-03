@@ -28,6 +28,10 @@
 
          ;; for finance-test.rkt
          price-on-closest-date
+         summary-roi-on-date
+         roi-line-equal
+         roi-line
+         summarize-roi-lines
          )
 
 #|
@@ -50,9 +54,9 @@ Called from report view
 
      summary-roi-on-date: account on date
        * summary-roi-on-date
-         price-on-closest-date
-	 price-list-for-cmdty-id
-	 roi-line-error-message
+         price-on-closest-date (cleaned and tested)
+	 price-list-for-cmdty-id (from object, no tests)
+	 roi-line-error-message (from struct, no tests)
 
    before returning account-roi
       summarize-roi-lines
@@ -121,7 +125,17 @@ from struct account-roi
 ;; --------------------------------
 
 
-(struct roi-line (commo-id shares price value cost gain-loss roi error-message))
+(struct roi-line (commo-id shares price value cost gain-loss roi error-message) #:transparent)
+; for testing - is there an easier way?
+(define (roi-line-equal this-line that-line)
+  (and (equal? (roi-line-commo-id this-line) (roi-line-commo-id this-line))
+       (equal?(roi-line-shares this-line) (roi-line-shares this-line))
+       (equal?(roi-line-price this-line) (roi-line-price this-line))
+       (equal?(roi-line-value this-line) (roi-line-value this-line))
+       (equal?(roi-line-cost this-line) (roi-line-cost this-line))
+       (equal?(roi-line-gain-loss this-line) (roi-line-gain-loss this-line))
+       (equal?(roi-line-roi this-line) (roi-line-roi this-line))
+       (equal?(roi-line-error-message this-line) (roi-line-error-message this-line))))
 
 (struct account-roi (account total-roi-line child-roi-lines error-message))
 
@@ -183,45 +197,36 @@ from struct account-roi
 ; notice: if there are no shares, there is no summary, and nothing is returned
 ; if there are no prices for a given commodity, set roi to null to signal an issue
 (define (summary-roi-on-date gnucash-data account arg-date)
-  (let* ([account-id (send account get-id)]
-         [snapshot (snapshot-on-closest-date gnucash-data account-id arg-date)]      
-         [cost (investment-snapshot-amount snapshot)]
-         [shares (investment-snapshot-shares snapshot)]
-         [commo-id (investment-snapshot-commodity-id snapshot)])
-    (printf "summary-roi-on-date ~a ~a" (send account get-name) arg-date)
-    (printf "commodity: ~a shares: ~a cost: ~a~%" commo-id shares cost)
-    (if (zero? shares)
-        null
-        (let ([price-obj (price-on-closest-date gnucash-data commo-id arg-date)])
-          (if (null? price-obj)
-              ; no price!!
-              (roi-line commo-id shares 0 0 cost 0 0 (format "No price for ~a on ~a" commo-id arg-date))
-              (let* ([price (send price-obj get-value)]
-                    [value (* shares price)]
-                    [gain-loss (- value cost)]
-                    [roi (if (zero? cost) 0 (* 100 (/ gain-loss cost)))])
-                (roi-line commo-id shares price value cost gain-loss roi "")))))))
-        
-        #|
-        (printf "~a ~a ~a ~a ~a ~a ~a~%"
-                (~a commo-id #:min-width 14)
-                (freal shares 3 8)
-                (freal price 3 12)
-                (freal value 2 12)
-                (freal cost 2 12)
-                (freal gain-loss 2 12)
-                ; sub1 from 12 width to account for %
-                (string-append (freal performance 2 11) "%"))))))
-|#
+  (define account-id (send account get-id))
+  (define snapshot (snapshot-on-closest-date gnucash-data account-id arg-date))
+  (define cost (investment-snapshot-amount snapshot))
+  (define shares (investment-snapshot-shares snapshot))
+  (define commo-id (investment-snapshot-commodity-id snapshot))  
+  (cond
+    [(zero? shares) null]
+    [ else
+      (define price-obj (price-on-closest-date gnucash-data commo-id arg-date))
+      (cond
+        [(null? price-obj)
+         ; no price!!
+         (roi-line commo-id shares 0 0 cost 0 0 (format "No price for ~a on ~a" commo-id arg-date))]
+        [else   
+         (define price (send price-obj get-value))
+         (define value (* shares price))
+         (define gain-loss (- value cost))
+         (define roi (if (zero? cost) 0 (* 100 (/ gain-loss cost))))
+         (roi-line commo-id shares price value cost gain-loss roi "")])]))
+
 (define (summarize-roi-lines all-lines)
-  (foldl (lambda (line result)
-           (let* ([new-cost (+ (roi-line-cost line) (roi-line-cost result))]
-                  [new-value (+ (roi-line-value line) (roi-line-value result))]
-                  [gain-loss (- new-value new-cost)]
-                  [roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost)))])
-             (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi "")))
-         (roi-line "TOTAL" 0 0 0 0 0 0 "")
-         all-lines))
+  (foldl
+   (lambda (line result)
+     (define new-cost (+ (roi-line-cost line) (roi-line-cost result)))
+     (define new-value (+ (roi-line-value line) (roi-line-value result)))
+     (define gain-loss (- new-value new-cost))
+     (define roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost))))
+     (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi ""))
+   (roi-line "TOTAL" 0 0 0 0 0 0 "")
+   all-lines))
 
 ;; -----------------------------------------------
 ;;  SNAPSHOT AT DATE FOR SINGLE COMMODITY ACCOUNT
@@ -322,28 +327,24 @@ from struct account-roi
 ;;  COMMODITY PRICE FOR COMMODITY AT DATE CLOSEST BUT NOT BEYOND
 ;; --------------------------------------------------------------
 
-; return the price (value of a price%) ON the exact date, or on the closest date LESS than the date
+; return the price% ON the exact date, or on the closest date LESS than the date
 ; return null if there are no prices for this commodity
 (define (price-on-closest-date gnucash-data commodity-id arg-date)
-  (printf "DEBUG commodity-id ~a~%" commodity-id)
-  (let ([price-list (send gnucash-data price-list-for-cmdty-id commodity-id)])
-    (let loop ([prices price-list] [found-price null])
-      (if (empty? prices)
-        (if (null? found-price)
-            (block             
-             (printf "price-on-closest-date: didn't find the price for ~a on ~a~%" commodity-id arg-date)
-             null
-             )
-            found-price)
-      ; else (list is not empty)
-        (let* ([price (car prices)]
-               [date (send price get-date)])
-          (cond
-            [(equal? date arg-date) price]
-            [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
-            [(string>? date arg-date)
-             ; may be null!
-             found-price]))))))
+  (define price-list (send gnucash-data price-list-for-cmdty-id commodity-id))
+  (let loop ([prices price-list] [found-price null])
+    (cond
+      [(empty? prices)
+       (if (null? found-price)
+           null
+           found-price)]
+      [else 
+       ; else (list is not empty)
+       (define price (car prices))
+       (define date (send price get-date))
+       (cond
+         [(equal? date arg-date) price]
+         [(string<? date arg-date) (loop (rest prices) price)] ; closest price so far
+         [(string>? date arg-date) found-price])])))
 
 ;; --------------------------
 ;;  ROI REPORT MAIN FUNCTION

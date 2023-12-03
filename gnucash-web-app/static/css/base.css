@@ -7,9 +7,15 @@ html {
    background-color: #95cfff;
 }
 
+.roi-heading tr:nth-of-type(2n+1) {
+   background-color: #95cfff;
+}
+
 .main-content-heading {
   margin-left: 30px;
 }
+
+/* disable alternate colors else background not used */
 
 .report-section {
    margin-left: 30px;

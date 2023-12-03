@@ -29,7 +29,8 @@
                 <td class="text-right">@(real->decimal-string(roi-line-roi commodity))%</td>
             </tr>
             }
-            <tr class="roi-heading">
+            <!-- hard-code style to override alternate colors on rows -->
+            <tr style="background-color: #95cfff">
                 <td class="text-left">TOTAL</td>
                 <td class="text-right">@(real->decimal-string(roi-line-cost (account-roi-total-roi-line
                     act-roi)))</td>
