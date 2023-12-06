@@ -150,13 +150,15 @@
     
     (define/public (get-prices-by-cmdty-id) prices-by-cmdty-id)
 
+    (define/public (num-price-lists) (hash-count prices-by-cmdty-id))
+
     ; return a list of prices
     (define/public (price-list-for-cmdty-id id)
       (if (hash-has-key? prices-by-cmdty-id id) 
           (hash-ref prices-by-cmdty-id id)
           (block 
-           (display "INFO: no prices for ~a~%" id)
-           '())))
+           (printf "INFO: no prices for ~a~%" id)
+           null)))
           
 
     ; sort prices chronologically
@@ -201,13 +203,17 @@
 
 (define (print-overview gnucash)
   (displayln "")
-  (displayln "--------")
-  (displayln "OVERVIEW")
-  (displayln "--------")
+  (displayln "----------------")
+  (displayln "    OVERVIEW")
+  (displayln "----------------")
   (printf "File path: ~a~%" (send gnucash get-file-path))
   (printf "Number of accounts: ~a~%" (send gnucash num-accounts))
   (printf "Number of commodities: ~a~%" (send gnucash num-commodities))
-  (printf "Number of prices: ~a~%" (send gnucash num-prices))
+  (printf "Number of commodities with prices: ~a~%" (send gnucash num-price-lists))
+  (define num-prices (foldr (lambda (lst-prices result) (+ result (length lst-prices)))
+                      0
+                      (hash-values (send gnucash get-prices-by-cmdty-id))))
+  (printf "Number of prices: ~a~%" num-prices)
   (displayln ""))
 
 ;; ------------
@@ -343,8 +349,16 @@
 ;; An price from the GnuCash file
 (define price%
   (class object%
+    (init init-commo)
+    (init init-date)
+    (init init-value)
+
+    (define commodity-id init-commo)
+    (define date init-date)
+    (define value init-value)
+    
     (super-new)
-    (field [commodity-id ""] [date "NO DATE FOUND"] [value 0.0])
+    ;(field [commodity-id ""] [date "NO DATE FOUND"] [value 0.0])
 
     (define/public (set-commodity-id! arg-id) (set! commodity-id arg-id))
     (define/public (set-date! arg-date) (set! date arg-date))
@@ -355,9 +369,12 @@
     (define/public (get-value) value)
 
     (define/public (as-string)
-      (format "~a ~a ~a~%" commodity-id date (real->decimal-string value)))
+      (format "commodity-id: ~a date: ~a value: ~a" commodity-id date (real->decimal-string value)))
     
 ))
+
+(define (make-vanilla-price)
+  (make-object price% "UNDEFINED" "1950-12-31" 0))
 
 ; <cmdty:id>
 ; <ts:date>2023-08-31 10:59:00 +0000</ts:date>
@@ -480,6 +497,31 @@
    (printf "FIRST TRANS DATE: ~a~%" (send (first (send account get-transactions)) get-date))
    (for ([transaction (send account get-transactions)])
     (displayln (send transaction as-string-all-splits)))))
+
+; return the balance of the account on the given date
+(define (account-balance-on-date account arg-date)
+  (define all-transactions (send account get-transactions))
+  (let loop ([transactions all-transactions] [balance 0])
+    (let* ([trans (first transactions)]
+          [date (send trans get-date)]
+          [amount ((get-account-amount-from-splits (send trans get-splits) account))])
+    (cond
+      [(string>? date arg-date) balance]
+      [(equal? date arg-date) (+ balance amount)]
+      [else
+       (loop (rest transactions) (+ balance amount))]))))
+
+;; given a list of splits for a given account, return the value
+;; of the split whose account is the given account
+;; example in Chequing
+;; 2022-12-20 Rent
+;;       Rent         200
+;;        Chequing    -200
+;; return 200     
+      
+(define (get-account-amount-from-splits splits account)
+  0)
+    
 
 ;;-----------------------
 ;;  HELPERS FOR SORTING

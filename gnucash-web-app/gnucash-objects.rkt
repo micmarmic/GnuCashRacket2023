@@ -498,6 +498,40 @@
    (for ([transaction (send account get-transactions)])
     (displayln (send transaction as-string-all-splits)))))
 
+; return the balance of the account on the given date
+(define (account-balance-on-date account arg-date)
+  (define all-transactions (send account get-transactions))
+  (let loop ([transactions all-transactions] [balance 0])
+    (if (empty? transactions)
+        balance
+        (let* ([trans (first transactions)]
+               [date (send trans get-date)]
+               [amount (get-account-amount-from-splits (send trans get-splits) account)])      
+          (cond
+            [(string>? date arg-date) balance]
+            [(equal? date arg-date) (+ balance amount)]
+            [else
+             (loop (rest transactions) (+ balance amount))])))))
+
+;; given a list of splits for a given account, return the value
+;; of the split whose account is the given account
+;; no error checking
+;; example in Chequing
+;; 2022-12-20 Rent
+;;       Rent         200
+;;        Chequing    -200
+;; return 200     
+(define (get-account-amount-from-splits splits account)
+  (define account-id (send account get-id))
+  (let loop ([splits splits])
+    (define split (first splits))
+    (if (equal? (send split get-account-id) account-id)
+        (send split get-value)
+        (loop (rest splits)))))
+             
+             
+    
+
 ;;-----------------------
 ;;  HELPERS FOR SORTING
 ;;  * use 'account get-sort-name' for sorting *

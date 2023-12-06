@@ -18,13 +18,16 @@
          
          account-roi-error-message
          account-roi-child-roi-lines
+         account-roi-total-roi-line
+         account-roi-cash
+         account-roi-grand-total-value
+         account-roi-grand-total-cost
 
          roi-line-commo-id
          roi-line-cost
          roi-line-value
          roi-line-gain-loss
          roi-line-roi
-         account-roi-total-roi-line
 
          ;; for finance-test.rkt
          price-on-closest-date
@@ -137,13 +140,16 @@ from struct account-roi
        (equal?(roi-line-roi this-line) (roi-line-roi this-line))
        (equal?(roi-line-error-message this-line) (roi-line-error-message this-line))))
 
-(struct account-roi (account total-roi-line child-roi-lines error-message))
+(struct account-roi (account total-roi-line child-roi-lines error-message
+                             cash grand-total-cost grand-total-value))
 
 (define (calc-grand-total-list-account-roi list-account-roi)
-  (summarize-roi-lines
-   (map (lambda (act-roi)
-          (account-roi-total-roi-line act-roi))
-        list-account-roi)))
+  (if (or (void? list-account-roi)(empty? list-account-roi))
+      (error "cannot calc grand total because list account roi is void or empty")
+      (summarize-roi-lines
+       (map (lambda (act-roi)
+              (account-roi-total-roi-line act-roi))
+            list-account-roi))))
     
   
 
@@ -173,14 +179,14 @@ from struct account-roi
     (printf "~a~%" (repeat-char->string #\- 88))
     (printf "~a~%" (send (account-roi-account account-data) get-fullname))
     (printf "~a~%" (repeat-char->string #\- 88))
-      (printf "~a ~a ~a ~a ~a ~a ~a~%"
-              (~a "COMMODITY" #:min-width 14)
-              (~a "SHARES" #:min-width 8 #:align 'right)
-              (~a "PRICE" #:min-width 12 #:align 'right)
-              (~a "MKT VALUE" #:min-width 12 #:align 'right)
-              (~a "COST" #:min-width 12 #:align 'right)
-              (~a "GAIN/LOSS" #:min-width 12 #:align 'right)
-              (~a "ROI" #:min-width 12 #:align 'right))
+    (printf "~a ~a ~a ~a ~a ~a ~a~%"
+            (~a "COMMODITY" #:min-width 14)
+            (~a "SHARES" #:min-width 8 #:align 'right)
+            (~a "PRICE" #:min-width 12 #:align 'right)
+            (~a "MKT VALUE" #:min-width 12 #:align 'right)
+            (~a "COST" #:min-width 12 #:align 'right)
+            (~a "GAIN/LOSS" #:min-width 12 #:align 'right)
+            (~a "ROI" #:min-width 12 #:align 'right))
     (for ([line (account-roi-child-roi-lines account-data)])
       (print-roi-line line))
     (print-roi-line (account-roi-total-roi-line account-data))))
@@ -267,10 +273,7 @@ from struct account-roi
                         [new-shares (+ shares split-shares)]
                         [current-value (send split get-value)]
                         [new-amount (+ amount current-value)])
-                 (loop (rest splits)
-                       ; expenses and amount for next iteration
-                       new-shares
-                       new-amount))]                       
+                 (loop (rest splits) new-shares  new-amount))]                       
                 [(equal? TYPE-EXPENSE
                          (send (send split get-account) get-type))
                  (loop (rest splits)
@@ -286,43 +289,39 @@ from struct account-roi
 ;; given an account and date, find the snapshot on closest-date not beyond
 ;; return an investment-snapshot
 (define (snapshot-on-closest-date gnucash-data arg-account-id arg-date)
-  (let* ([account (send gnucash-data account-by-id arg-account-id)]
-         [commodity-id (send account get-commodity-id)]
-         [all-transactions (send account get-transactions)])
-    (let loop ([transactions all-transactions]
-               [main-snapshot (investment-snapshot commodity-id 0 0)])
-      (if (empty? transactions)
-          main-snapshot
-          (block
-           (let* ([trans (first transactions)]
-                  [splits (send trans get-splits)]
-                  ;; in this let*, call make-split-snapshot for the current transaction
-                  ;; and update the total shares and amount accordingly
-                  [snapshot (make-split-snapshot arg-date splits arg-account-id)]
-                  [snapshot-shares (investment-snapshot-shares snapshot)]
-                  [snapshot-amount (investment-snapshot-amount snapshot)]
-                  [current-shares (investment-snapshot-shares main-snapshot)] ; in case shares sold
-                  [current-amount (investment-snapshot-amount main-snapshot)]
-                  [current-price-share (if (= 0 current-shares) 0 (/ current-amount current-shares))]
-                  [new-shares (+ current-shares snapshot-shares)]
-                  
-                  ; special case 1: if you sell everything (0 shares) then cost goes to $0
-                  ; (gains/losses are realized, but that is out of scope for the snapshot)
-
-                  ; special case 2: if shares decreased, there was a sale of shares,
-                  ; amount needs to be calculated accordingly
-                  [new-amount
-                   (cond [(= 0 new-shares) 0]
-                         [(< new-shares current-shares)
-                          (cost-after-sale current-amount current-shares snapshot-shares)]
-                         [else (+ snapshot-amount current-amount)])]) 
-             ; loop until past the desired date
-             (if (string>? (send trans get-date) arg-date)
-                 main-snapshot
-                 ; TODO just main-snaphot?
-                 ;(loop '() main-snapshot)
-                 (loop (rest transactions) (investment-snapshot commodity-id new-shares new-amount)))))))))
-
+  (define account (send gnucash-data account-by-id arg-account-id))
+  (define commodity-id (send account get-commodity-id))
+  (define all-transactions (send account get-transactions))
+  (let loop ([transactions all-transactions]
+             [main-snapshot (investment-snapshot commodity-id 0 0)])
+    (cond
+      [(empty? transactions) main-snapshot]
+      [else
+       (define trans (first transactions))
+       (cond
+         [(string>? (send trans get-date) arg-date) main-snapshot]
+         [else 
+          (define splits (send trans get-splits))
+          ;; in this let*, call make-split-snapshot for the current transaction
+          ;; and update the total shares and amount accordingly
+          (define snapshot (make-split-snapshot arg-date splits arg-account-id))
+          (define snapshot-shares (investment-snapshot-shares snapshot))
+          (define snapshot-amount (investment-snapshot-amount snapshot))
+          (define current-shares (investment-snapshot-shares main-snapshot))
+          (define current-amount (investment-snapshot-amount main-snapshot))
+          (define current-price-share (if (= 0 current-shares) 0 (/ current-amount current-shares)))
+          (define new-shares (+ current-shares snapshot-shares))
+          
+          ; special case 1: if you sell everything (0 shares) then cost goes to $0
+          ; (gains/losses are realized, but that is out of scope for the snapshot)
+          ; special case 2: if shares decreased, there was a sale of shares,
+          ; amount needs to be calculated accordingly
+          (define new-amount
+            (cond [(= 0 new-shares) 0]
+                  [(< new-shares current-shares)
+                   (cost-after-sale current-amount current-shares snapshot-shares)]
+                  [else (+ snapshot-amount current-amount)]))
+          (loop (rest transactions) (investment-snapshot commodity-id new-shares new-amount))])])))
 ;; --------------------------------------------------------------
 ;;  COMMODITY PRICE FOR COMMODITY AT DATE CLOSEST BUT NOT BEYOND
 ;; --------------------------------------------------------------
@@ -356,41 +355,52 @@ from struct account-roi
 
 ; return a list of account-roi
 (define (roi-on-date gnucash-data arg-date)
-  (let ([all-account-roi '()])
-    (for ([account (send gnucash-data holding-accounts)])
-      (let ([fullname (send account get-fullname)]
-            [children (send account get-children)])
-        ;; loop child accounts
-        (let loop ([all-children children]
-                   [all-lines '()]
-                   [error-message ""])
-          (if (empty? all-children)
-              ;; all children processed: return
-              (set! all-account-roi
-                    (append all-account-roi
-                            (list (account-roi
-                                   account
-                                   (summarize-roi-lines all-lines)
-                                   all-lines
-                                   error-message))))
-              ;; process individual child
-              ;; line will be '() if there is no info returned
-              (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])                     
-                (if (null? line)
-                    ; just loop with next child
-                    (loop (rest all-children) all-lines error-message)
-                    ; add line, update error message if required
-                    (let* ([line-error (roi-line-error-message line)]
-                           [new-message
-                            (if (equal? "" line-error)
-                                error-message                         ; 
-                                (let* ([child-account-name (send (first all-children) get-name)])
-                                  (if (equal? "" error-message)
-                                      line-error
-                                      (format "~a; ~a" error-message line-error))))])                      
-                      (loop (rest all-children) (append all-lines (list line)) new-message))))))))
-    all-account-roi))
-                
+  (define all-account-roi '())
+  (for ([account (send gnucash-data holding-accounts)])
+    (define fullname (send account get-fullname))
+    (define children (send account get-children))
+    (define cash (account-balance-on-date account arg-date))
+    ;; loop child accounts
+    (let loop ([all-children children]
+               [all-lines '()]
+               [error-message ""])
+      (if (empty? all-children)
+          ;; all children processed: return
+          (let* ([total-roi-line (summarize-roi-lines all-lines)]
+                 [grand-total-cost (+ cash (roi-line-cost total-roi-line))]
+                 [grand-total-value (+ cash (roi-line-value total-roi-line))]
+                 [cash-text (real->decimal-string cash)]
+                 [grand-total-cost-text (real->decimal-string grand-total-cost)]
+                 [grand-total-value-text (real->decimal-string grand-total-value)]) 
+            (set! all-account-roi
+                  (append all-account-roi
+                          (list (account-roi
+                               account
+                               total-roi-line
+                               all-lines
+                               error-message
+                               cash-text
+                               grand-total-cost-text
+                               grand-total-value-text)))))                               
+          ;; process individual child
+          ;; line will be '() if there is no info returned
+          (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])                     
+            (if (null? line)
+                ; just loop with next child
+                (loop (rest all-children) all-lines error-message)
+                ; add line, update error message if required
+                (let* ([line-error (roi-line-error-message line)]
+                       [new-message
+                        (if (equal? "" line-error)
+                            error-message                         ; 
+                            (let* ([child-account-name (send (first all-children) get-name)])
+                              (if (equal? "" error-message)
+                                  line-error
+                                  (format "~a; ~a" error-message line-error))))])                      
+                  (loop (rest all-children) (append all-lines (list line)) new-message)))))))
+  ; top-level, not in for!
+  all-account-roi)
+
               
           ;(let ([snapshot (snapshot-on-closest-date gnucash-data (send child get-id) demo-date)])
           ;  (when (> (investment-snapshot-shares snapshot) 0)

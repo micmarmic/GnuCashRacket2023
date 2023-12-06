@@ -46,6 +46,10 @@
       </slot>
     </slot:value>
   </slot>
+  <slot>
+    <slot:key>remove-color-not-set-slots</slot:key>
+    <slot:value type="string">true</slot:value>
+  </slot>
 </book:slots>
 <gnc:count-data cd:type="commodity">3</gnc:count-data>
 <gnc:count-data cd:type="account">73</gnc:count-data>
@@ -1460,7 +1464,7 @@
     <cmdty:id>CAD</cmdty:id>
   </trn:currency>
   <trn:date-posted>
-    <ts:date>2023-04-25 10:59:00 +0000</ts:date>
+    <ts:date>2022-04-25 10:59:00 +0000</ts:date>
   </trn:date-posted>
   <trn:date-entered>
     <ts:date>2023-12-02 15:23:42 +0000</ts:date>
@@ -1470,7 +1474,7 @@
     <slot>
       <slot:key>date-posted</slot:key>
       <slot:value type="gdate">
-        <gdate>2023-04-25</gdate>
+        <gdate>2022-04-25</gdate>
       </slot:value>
     </slot>
   </trn:slots>
