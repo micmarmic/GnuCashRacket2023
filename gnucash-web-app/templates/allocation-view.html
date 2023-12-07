@@ -26,11 +26,11 @@
             </tr>
             <tr>
                 <td class="text-center">Target Allocation</td>
-                <td class="text-center">10%</td>
-                <td class="text-center">30%</td>
-                <td class="text-center">30%</td>
-                <td class="text-center">20%</td>
-                <td class="text-center">10%</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-ca target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-us target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-intl target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-fixed target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-other target-allocation))</td>
             </tr>
             <tr>
                 <td class="text-center">Difference</td>

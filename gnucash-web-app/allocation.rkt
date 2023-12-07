@@ -1,12 +1,25 @@
 #lang racket
 
-(provide file->alloc-hash)
+(provide file->alloc-hash
+         valid-alloc-hash?
+         alloc-rec-ca
+         alloc-rec-us
+         alloc-rec-intl
+         alloc-rec-fixed
+         alloc-rec-other
+         as-percent-string)
 
 (require rackunit)
 
 (define HARD-CODED-ALLLOCATION-FILE "allocation-data.txt")
 (define TEST-ALLLOCATION-FILE "tests/test-allocation-data.txt")
 
+
+;; take 0.43 or 1 and return as 43% or 100%
+(define (as-percent-string value)
+  ; notice add % after ~a to get "n%"
+  (format "~a%" (exact-round (* 100 value))))
+  
 
 #|
 1. ASSET ALLOCATION
@@ -79,15 +92,17 @@ MET
      (alloc-rec-other alloc)))
 
 ; return #t if all allocation totals are 100%
+; values are less than 1 and must total to 1
 ; if debug is on, display which record is wrong
 (define (valid-alloc-hash? alloc-hash [debug #f])
-  (define result (andmap (lambda (alloc) (= 100 (total-alloc alloc))) (hash-values alloc-hash)))
+  (define result (andmap (lambda (alloc) (= 1 (total-alloc alloc))) (hash-values alloc-hash)))
   (when (and (not result) debug)    
     (for ([key (in-list (hash-keys alloc-hash))])
       (define current-alloc (hash-ref alloc-hash key))
       (displayln current-alloc)
-      (when (not (= 100 (total-alloc current-alloc)))
-        (printf "Total is not 100: ~a ~a~%" key current-alloc))))
+      (define total (total-alloc current-alloc))
+      (when (not (= 1 total))
+        (printf "Total is not 100: ~a ~a add up to ~a~%" key current-alloc total))))
   result)
 
 
@@ -97,7 +112,7 @@ MET
 
 (define (file->alloc-hash file-path)
   (define alloc-hash (make-hash))
-  (define full-path (string-append (path->string (current-directory)) file-path))
+  (printf "DEBUG trying to get allocatin data from ~a~%" file-path)
   (call-with-input-file file-path    
     (lambda (in)
       (for ([line (in-lines in)])
@@ -109,13 +124,15 @@ MET
 
 
  
-(define alloc-hash (file->alloc-hash HARD-CODED-ALLLOCATION-FILE))
-(valid-alloc-hash? alloc-hash #t)
   
 
 ;; -------
 ;;  TESTS
 ;; -------
+
+;(define alloc-hash (file->alloc-hash HARD-CODED-ALLLOCATION-FILE))
+;(valid-alloc-hash? alloc-hash #t)
+
 
 (define bad-alloc-hash (hash "BAD-TOTAL" (alloc-rec "Test" 3 3 3 3 3)))
 (check-false (valid-alloc-hash? bad-alloc-hash))

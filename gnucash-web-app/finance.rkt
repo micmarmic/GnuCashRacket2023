@@ -112,7 +112,7 @@ from struct account-roi
 ;;  HELPERS
 ;; ---------
 
-;; format value as real with given precision and with
+;; format value as real with given precision and width (number decimals)
 (define (freal value precision width)  
   ; using ~a with real converter because ~r separates the - sign from the number
   (cond [(null? value) ""]

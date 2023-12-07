@@ -8,7 +8,10 @@
 
 (require "pagination.rkt"
          "finance.rkt"
-         "simple-date.rkt")
+         "simple-date.rkt"
+         "settings.rkt"
+         "allocation.rkt"
+         )
 
 (provide ledger-view
          
@@ -17,7 +20,8 @@
          exception-page
          dashboard-view
          account-list-view
-         roi-report-view)
+         roi-report-view
+         allocation-view)
 
 ;;
 ;; DEBUG LET EXCEPTIONS RISE UP
@@ -527,6 +531,37 @@
            [main-content (include-template "templates/account-list.html")])
       (response-200-base-template page-title main-content-heading main-content)))
 |#
+
+;; -----------------------
+;;  ASSET ALLOCATION VIEW
+;; -----------------------
+
+;; get the allocation targets
+;; get allocation for each commodity from file
+;; get the roi-lines and calc for each commodity and totals
+(define (allocation-view gnucash-data arg-date)
+  (let* ([allocation-hash (get-allocation-hash)]
+         [target-allocation (hash-ref allocation-hash "TARGET")]
+         [view-heading (format "Asset Allocation")]
+         [page-title (format "~a | GnuCash" view-heading)]
+         [main-content-heading view-heading])
+         (response-200-base-template page-title main-content-heading
+                                     (include-template "templates/allocation-view.html"))))
+
+
+;; load allocation data from file
+;; allocation-file-path comes from settings.rkt
+;; this function looks into the directory where the web-server was run (yes! this is my app)
+;; return hash with pairs commodity-id alloc-rec
+;; note target allocation is under commodity TARGET (important elsewhere)
+(define (get-allocation-hash)
+  (define allocation-hash (file->alloc-hash allocation-file-path))
+  (if (valid-alloc-hash? allocation-hash)
+      allocation-hash
+      (let ([message (format "Allocation data from ~a is not valid" allocation-file-path)])
+        ; call again to display messages on console
+        (valid-alloc-hash? allocation-hash #t)
+        (error message))))
 
 ;; ------------------------------
 ;;  BALANCE IN LEDGER AS OF DATE
