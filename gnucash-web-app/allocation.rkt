@@ -2,6 +2,7 @@
 
 (provide file->alloc-hash
          valid-alloc-hash?
+         alloc-rec
          alloc-rec-ca
          alloc-rec-us
          alloc-rec-intl
@@ -71,6 +72,8 @@ MET
 
 (struct alloc-rec (commodity ca us intl fixed other) #:transparent)
 
+;; make alloc-rec records from elements in list
+;; return an alloc-rec
 (define (list->alloc-rec lst)
   (define (input->number input)
     (cond [(number? input) input]

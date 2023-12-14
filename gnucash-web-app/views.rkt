@@ -51,10 +51,10 @@
 
 ;  (with-handlers ([exn:fail? (λ (e) (printf "EXCEPTION: ~a~%" (exn-message e)))])
 
-(define (roi-report-view gnucash-data arg-date url)
+(define (roi-report-view gnucash-data arg-date url [alloc-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
-    (let* ([master-list-roi (roi-on-date gnucash-data arg-date)]
+    (let* ([master-list-roi (roi-on-date gnucash-data arg-date alloc-hash)]
            [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
            [view-heading (format "ROI Report - ~a" arg-date)]
            [page-title (format "~a | GnuCash" view-heading)]

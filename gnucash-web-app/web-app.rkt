@@ -148,7 +148,7 @@ Images can be served statically using http-response-image.
    [("allocation" (string-arg))
     (lambda (request date) (allocation-view %global-gnucash-data% date))]      
    [("roi-report" (string-arg))
-    (lambda (request date) (roi-report-view %global-gnucash-data% date (get-url request)))]      
+    (lambda (request date) (roi-report-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
    ;; id page-number split-flag (s1 display splits, else just trans)
    [("account" (string-arg) (integer-arg) (string-arg))
     (lambda (request account-id page-num split-flag)

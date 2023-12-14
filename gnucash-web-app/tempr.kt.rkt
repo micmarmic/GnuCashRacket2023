@@ -28,3 +28,6 @@
   (define expected (real->decimal-string (second test-case)))
   (define actual (real->decimal-string (account-balance-on-date account1 date)))
   (check-equal? actual expected))
+
+
+(regexp-match #rx"<img.*>" "333<img caat>333")

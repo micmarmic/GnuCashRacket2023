@@ -11,23 +11,36 @@
 
 (require "gnucash-objects.rkt"
          "gnucash-parser.rkt"
+         "allocation.rkt"
          )
 
-(provide roi-on-date account-roi-account
+(provide roi-on-date 
          calc-grand-total-list-account-roi
          
+         account-roi-account
          account-roi-error-message
          account-roi-child-roi-lines
          account-roi-total-roi-line
          account-roi-cash
          account-roi-grand-total-value
          account-roi-grand-total-cost
+         account-roi-ca
+         account-roi-us
+         account-roi-intl
+         account-roi-fixed
+         account-roi-other
 
          roi-line-commo-id
          roi-line-cost
          roi-line-value
          roi-line-gain-loss
          roi-line-roi
+         roi-line-ca
+         roi-line-us
+         roi-line-intl
+         roi-line-fixed
+         roi-line-other
+         
 
          ;; for finance-test.rkt
          price-on-closest-date
@@ -127,8 +140,9 @@ from struct account-roi
 ;;  ROI DATA STRUCTURE AND HELPERS
 ;; --------------------------------
 
-
-(struct roi-line (commo-id shares price value cost gain-loss roi error-message) #:transparent)
+;; represents the numbers on a monthly statement PLUS the asset allocation of the value
+(struct roi-line (commo-id shares price value cost gain-loss roi error-message
+                           ca us intl fixed other) #:transparent)
 ; for testing - is there an easier way?
 (define (roi-line-equal this-line that-line)
   (and (equal? (roi-line-commo-id this-line) (roi-line-commo-id this-line))
@@ -141,7 +155,8 @@ from struct account-roi
        (equal?(roi-line-error-message this-line) (roi-line-error-message this-line))))
 
 (struct account-roi (account total-roi-line child-roi-lines error-message
-                             cash grand-total-cost grand-total-value))
+                             cash grand-total-cost grand-total-value
+                             ca us intl fixed other))
 
 (define (calc-grand-total-list-account-roi list-account-roi)
   (if (or (void? list-account-roi)(empty? list-account-roi))
@@ -196,18 +211,34 @@ from struct account-roi
 ;;  ROI REPORT SUMMARY FUNCTIONS
 ;; ------------------------------
 
+;; calc the alloc-rec for a roi-line
+(define (make-alloc-rec commo-id value alloc-hash)
+  (cond
+    [(null? alloc-hash) (alloc-rec commo-id 0 0 0 0 0)]
+    [else         
+  (if (not (hash-has-key? alloc-hash commo-id))
+    (error (format "There is no allocation data for commodity '~a'"))
+    (let ([source-alloc-rec (hash-ref alloc-hash commo-id)])
+      (alloc-rec
+       commo-id
+       (* value (alloc-rec-ca source-alloc-rec))
+       (* value (alloc-rec-us source-alloc-rec))
+       (* value (alloc-rec-intl source-alloc-rec))
+       (* value (alloc-rec-fixed source-alloc-rec))
+       (* value (alloc-rec-other source-alloc-rec)))))]))
+
 ; return a roi-line for the account on the given date
 ; return null if no shares
 ; combine the calculation of the shares and cost with the search for the price
 ; and the roi calculations
-; notice: if there are no shares, there is no summary, and nothing is returned
-; if there are no prices for a given commodity, set roi to null to signal an issue
-(define (summary-roi-on-date gnucash-data account arg-date)
+; allocation: also add the asset allocation at the target date if an alloc-hash is passed
+; if there are no prices for a given commodity, set roi to 0 and add error message
+(define (summary-roi-on-date gnucash-data account arg-date [alloc-hash null])
   (define account-id (send account get-id))
   (define snapshot (snapshot-on-closest-date gnucash-data account-id arg-date))
   (define cost (investment-snapshot-amount snapshot))
   (define shares (investment-snapshot-shares snapshot))
-  (define commo-id (investment-snapshot-commodity-id snapshot))  
+  (define commo-id (investment-snapshot-commodity-id snapshot))
   (cond
     [(zero? shares) null]
     [ else
@@ -215,13 +246,24 @@ from struct account-roi
       (cond
         [(null? price-obj)
          ; no price!!
-         (roi-line commo-id shares 0 0 cost 0 0 (format "No price for ~a on ~a" commo-id arg-date))]
+         (roi-line commo-id shares 0 0 cost 0 0 (format "No price for ~a on ~a" commo-id arg-date)
+                   ;; allocation: all zero
+                   0 0 0 0 0)]
         [else   
          (define price (send price-obj get-value))
          (define value (* shares price))
          (define gain-loss (- value cost))
          (define roi (if (zero? cost) 0 (* 100 (/ gain-loss cost))))
-         (roi-line commo-id shares price value cost gain-loss roi "")])]))
+         (define alloc-rec (make-alloc-rec commo-id value alloc-hash))
+         (roi-line commo-id shares price value cost gain-loss roi ""
+                   (alloc-rec-ca alloc-rec)
+                   (alloc-rec-us alloc-rec)
+                   (alloc-rec-intl alloc-rec)
+                   (alloc-rec-fixed alloc-rec)
+                   (alloc-rec-other alloc-rec)
+                   )])]))
+
+
 
 (define (summarize-roi-lines all-lines)
   (foldl
@@ -230,8 +272,10 @@ from struct account-roi
      (define new-value (+ (roi-line-value line) (roi-line-value result)))
      (define gain-loss (- new-value new-cost))
      (define roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost))))
-     (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi ""))
-   (roi-line "TOTAL" 0 0 0 0 0 0 "")
+     ;; TODO: allocation
+     (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi ""
+               0 0 0 0 0))
+   (roi-line "TOTAL" 0 0 0 0 0 0 "" 0 0 0 0 0 )
    all-lines))
 
 ;; -----------------------------------------------
@@ -354,7 +398,7 @@ from struct account-roi
 (define demo-date "2022-12-31")
 
 ; return a list of account-roi
-(define (roi-on-date gnucash-data arg-date)
+(define (roi-on-date gnucash-data arg-date [alloc-hash null])
   (define all-account-roi '())
   (for ([account (send gnucash-data holding-accounts)])
     (define fullname (send account get-fullname))
@@ -369,26 +413,34 @@ from struct account-roi
           (let* ([total-roi-line (summarize-roi-lines all-lines)]
                  [grand-total-cost (+ cash (roi-line-cost total-roi-line))]
                  [grand-total-value (+ cash (roi-line-value total-roi-line))]
+                 [alloc-rec (make-alloc-rec "TARGET" grand-total-value alloc-hash)]                                        
                  [cash-text (real->decimal-string cash)]
                  [grand-total-cost-text (real->decimal-string grand-total-cost)]
                  [grand-total-value-text (real->decimal-string grand-total-value)]) 
             (set! all-account-roi
                   (append all-account-roi
                           (list (account-roi
-                               account
-                               total-roi-line
-                               all-lines
-                               error-message
-                               cash-text
-                               grand-total-cost-text
-                               grand-total-value-text)))))                               
+                                 account
+                                 total-roi-line
+                                 all-lines
+                                 error-message
+                                 cash-text
+                                 grand-total-cost-text
+                                 grand-total-value-text                              
+                                 (alloc-rec-ca alloc-rec)
+                                 (alloc-rec-us alloc-rec)
+                                 (alloc-rec-intl alloc-rec)
+                                 (alloc-rec-fixed alloc-rec)
+                                 (alloc-rec-other alloc-rec)
+                                 )))))                               
           ;; process individual child
           ;; line will be '() if there is no info returned
-          (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date)])                     
+          (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date alloc-hash)])
+            (printf "DEBUG summary-roi-on-date ~a~%" line)
             (if (null? line)
                 ; just loop with next child
                 (loop (rest all-children) all-lines error-message)
-                ; add line, update error message if required
+                ; add line, update error message if required, then loop
                 (let* ([line-error (roi-line-error-message line)]
                        [new-message
                         (if (equal? "" line-error)
