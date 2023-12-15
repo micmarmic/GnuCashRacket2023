@@ -21,7 +21,21 @@
          dashboard-view
          account-list-view
          roi-report-view
-         allocation-view)
+         allocation-view
+
+         strip-decimal)
+
+
+;;
+;; GENERAL HELPERS
+;;
+
+;; "12341.34" -> "12341"
+;; "22" -> "22"
+(define (strip-decimal str-value)
+  (if (string-contains? str-value ".")
+      (first (string-split str-value "."))
+      str-value))
 
 ;;
 ;; DEBUG LET EXCEPTIONS RISE UP
@@ -540,6 +554,8 @@
 ;;  ASSET ALLOCATION VIEW
 ;; -----------------------
 
+
+#|
 ;; get the allocation targets
 ;; get allocation for each commodity from file
 ;; get the roi-lines and calc for each commodity and totals
@@ -551,6 +567,27 @@
          [main-content-heading view-heading])
          (response-200-base-template page-title main-content-heading
                                      (include-template "templates/allocation-view.html"))))
+|#
+
+
+(define (allocation-view gnucash-data arg-date url [allocation-hash null])
+  ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
+  ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
+  (printf "DEBUG URL ~a~%" url)
+  (let* ([master-list-roi (roi-on-date gnucash-data arg-date allocation-hash)]
+         [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]         
+         [actual-allocation-percent-line (make-allocation-percent grand-total-line)]
+         [target-allocation (hash-ref allocation-hash "TARGET")]
+         [target-allocation-values
+          (add-allocation-to-roi-line grand-total-line target-allocation)]
+         [view-heading (format "Asset Allocation - ~a" arg-date)]
+         [page-title (format "~a | GnuCash" view-heading)]
+         [main-content-heading view-heading]
+         [date-selector (make-date-selector gnucash-data arg-date url)]
+         [form-url (substring url 0 (- (string-length url) 10))]
+         [extra-javascript (include-template "static/js/date-selector.js")])
+    (response-200-base-template page-title main-content-heading
+                                (include-template "templates/allocation-view.html"))))
 
 
 ;; load allocation data from file

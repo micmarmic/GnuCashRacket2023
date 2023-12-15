@@ -42,12 +42,14 @@
          roi-line-other
          
 
-         ;; for finance-test.rkt
          price-on-closest-date
          summary-roi-on-date
          roi-line-equal
          roi-line
          summarize-roi-lines
+         make-allocation-percent
+         make-alloc-rec
+         add-allocation-to-roi-line
          )
 
 #|
@@ -211,7 +213,7 @@ from struct account-roi
 ;;  ROI REPORT SUMMARY FUNCTIONS
 ;; ------------------------------
 
-;; calc the alloc-rec for a roi-line
+;; calc the alloc-rec for a roi-line for a given commodity
 (define (make-alloc-rec commo-id value alloc-hash)
   (cond
     [(null? alloc-hash) (alloc-rec commo-id 0 0 0 0 0)]
@@ -275,13 +277,56 @@ from struct account-roi
      (define roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost))))
      ;; TODO: allocation
      (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi ""
-               (+ (roi-line-ca line) (roi-line-ca result))
-               (+ (roi-line-us line) (roi-line-us result))
-               (+ (roi-line-intl line) (roi-line-intl result))
-               (+ (roi-line-fixed line) (roi-line-fixed result))
-               (+ (roi-line-other line) (roi-line-other result))))
+               (+ (exact-round (roi-line-ca line)) (roi-line-ca result))
+               (+ (exact-round (roi-line-us line)) (roi-line-us result))
+               (+ (exact-round (roi-line-intl line)) (roi-line-intl result))
+               (+ (exact-round (roi-line-fixed line)) (roi-line-fixed result))
+               (+ (exact-round (roi-line-other line)) (roi-line-other result))))
    (roi-line "TOTAL" 0 0 0 0 0 0 "" 0 0 0 0 0 )
    all-lines))
+
+
+;; change the values for the allocation for percents
+;; input: roi-line
+;; output: roi-line
+(define (make-allocation-percent line)
+  (if (zero? (roi-line-value line))
+      line      
+      (roi-line
+       (roi-line-commo-id line)
+       (roi-line-shares line)
+       (roi-line-price line)
+       (roi-line-value line)
+       (roi-line-cost line)
+       (roi-line-gain-loss line)
+       (roi-line-roi line)
+       (roi-line-error-message line)
+       (format "~a%" (exact-round (* 100 (/ (roi-line-ca line) (roi-line-value line)))))
+       (format "~a%" (exact-round (* 100 (/ (roi-line-us line) (roi-line-value line)))))
+       (format "~a%" (exact-round (* 100 (/ (roi-line-intl line) (roi-line-value line)))))
+       (format "~a%" (exact-round (* 100 (/ (roi-line-fixed line) (roi-line-value line)))))
+       (format "~a%" (exact-round (* 100 (/ (roi-line-other line) (roi-line-value line)))))
+       )))
+
+
+(define (add-allocation-to-roi-line line target-alloc-rec)
+  (if (zero? (roi-line-value line))
+      line      
+      (roi-line
+       (roi-line-commo-id line)
+       (roi-line-shares line)
+       (roi-line-price line)
+       (roi-line-value line)
+       (roi-line-cost line)
+       (roi-line-gain-loss line)
+       (roi-line-roi line)
+       (roi-line-error-message line)
+       (exact-round (* (alloc-rec-ca target-alloc-rec) (roi-line-value line)))
+       (exact-round (* (alloc-rec-us target-alloc-rec) (roi-line-value line)))
+       (exact-round (* (alloc-rec-intl target-alloc-rec) (roi-line-value line)))
+       (exact-round (* (alloc-rec-fixed target-alloc-rec) (roi-line-value line)))
+       (exact-round (* (alloc-rec-other target-alloc-rec) (roi-line-value line)))
+       )))
 
 ;; -----------------------------------------------
 ;;  SNAPSHOT AT DATE FOR SINGLE COMMODITY ACCOUNT
@@ -441,7 +486,6 @@ from struct account-roi
           ;; process individual child
           ;; line will be '() if there is no info returned
           (let* ([line (summary-roi-on-date gnucash-data (first all-children) arg-date alloc-hash)])
-            (printf "DEBUG summary-roi-on-date ~a~%" line)
             (if (null? line)
                 ; just loop with next child
                 (loop (rest all-children) all-lines error-message)

@@ -146,7 +146,7 @@ Images can be served statically using http-response-image.
 (define-values (dispatch generate-url)
   (dispatch-rules
    [("allocation" (string-arg))
-    (lambda (request date) (allocation-view %global-gnucash-data% date))]      
+    (lambda (request date) (allocation-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
    [("roi-report" (string-arg))
     (lambda (request date) (roi-report-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
    ;; id page-number split-flag (s1 display splits, else just trans)
@@ -154,7 +154,9 @@ Images can be served statically using http-response-image.
     (lambda (request account-id page-num split-flag)
       (ledger-view %global-gnucash-data% account-id request page-num split-flag (get-url request)))]
    [("accounts") (lambda (request) (account-list-view %global-gnucash-data% request))]
+
    [("") (lambda (request) (account-list-view %global-gnucash-data% request))]
+   
    [("dashboard") dashboard-view]
    [else generic-404]))
 
