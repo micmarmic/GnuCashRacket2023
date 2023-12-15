@@ -264,7 +264,8 @@ from struct account-roi
                    )])]))
 
 
-
+;; return a roi-line with the total for a given account
+;; all-lines should all be from same account
 (define (summarize-roi-lines all-lines)
   (foldl
    (lambda (line result)
@@ -274,7 +275,11 @@ from struct account-roi
      (define roi (if (zero?  new-cost) 0 (* 100 (/ gain-loss new-cost))))
      ;; TODO: allocation
      (roi-line "TOTAL" "" "" new-value new-cost gain-loss roi ""
-               0 0 0 0 0))
+               (+ (roi-line-ca line) (roi-line-ca result))
+               (+ (roi-line-us line) (roi-line-us result))
+               (+ (roi-line-intl line) (roi-line-intl result))
+               (+ (roi-line-fixed line) (roi-line-fixed result))
+               (+ (roi-line-other line) (roi-line-other result))))
    (roi-line "TOTAL" 0 0 0 0 0 0 "" 0 0 0 0 0 )
    all-lines))
 
@@ -427,11 +432,11 @@ from struct account-roi
                                  cash-text
                                  grand-total-cost-text
                                  grand-total-value-text                              
-                                 (alloc-rec-ca alloc-rec)
-                                 (alloc-rec-us alloc-rec)
-                                 (alloc-rec-intl alloc-rec)
-                                 (alloc-rec-fixed alloc-rec)
-                                 (alloc-rec-other alloc-rec)
+                                 (roi-line-ca total-roi-line)
+                                 (roi-line-us total-roi-line)
+                                 (roi-line-intl total-roi-line)
+                                 (roi-line-fixed total-roi-line)
+                                 (roi-line-other total-roi-line)
                                  )))))                               
           ;; process individual child
           ;; line will be '() if there is no info returned

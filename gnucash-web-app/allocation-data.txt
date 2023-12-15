@@ -2,7 +2,7 @@
 ;; commodity ca us intl fixed other
 ;; CAUTION: you can edit directly here, but it's better to use the GUI
 ;; amounts are percentage, expressed as decimal fractions or 1 for 100
-TARGET, 0.50, 0.25, 0.15, 0.10, 0
+TARGET, 0.50, 0.25, 0.20, 0.05, 0
 BMO, 1, 0, 0, 0, 0
 HXS, 0, 1, 0, 0, 0
 VEQT, 0.30, 0.43, 0.27, 0, 0

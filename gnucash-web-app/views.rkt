@@ -51,6 +51,10 @@
 
 ;  (with-handlers ([exn:fail? (λ (e) (printf "EXCEPTION: ~a~%" (exn-message e)))])
 
+
+;; DEV NOTE: roi-on-date then calc-grand-total... yields a line with the total value
+;; and the total allocation for all accounts, READY for allocation view
+
 (define (roi-report-view gnucash-data arg-date url [alloc-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
