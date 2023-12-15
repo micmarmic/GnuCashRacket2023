@@ -40,7 +40,8 @@
          roi-line-intl
          roi-line-fixed
          roi-line-other
-         
+         print-roi-line
+         make-roi-line-from-allocation-rec         
 
          price-on-closest-date
          summary-roi-on-date
@@ -50,6 +51,7 @@
          make-allocation-percent
          make-alloc-rec
          add-allocation-to-roi-line
+         subtract-roi-line
          )
 
 #|
@@ -181,7 +183,7 @@ from struct account-roi
                            (= 0 shares))
                         (~a "" #:min-width 8)
                         (freal shares 3 8))])
-    (printf "~a ~a ~a ~a ~a ~a ~a~%"
+    (printf "~a ~a ~a ~a ~a ~a ~a ~a ~a ~a ~a ~a ~a~%"
             (~a (roi-line-commo-id arg-line) #:min-width 14)
             shares-str
             price-str
@@ -189,7 +191,16 @@ from struct account-roi
             (freal (roi-line-cost arg-line) 2 12)
             (freal (roi-line-gain-loss arg-line) 2 12)
             ; sub1 from 12 width to account for %
-            (string-append (freal (roi-line-roi arg-line) 2 11) "%"))))
+            (string-append (freal (roi-line-roi arg-line) 2 11) "%")
+            (roi-line-error-message arg-line)
+            (roi-line-ca arg-line)
+            (roi-line-us arg-line)
+            (roi-line-intl arg-line)
+            (roi-line-fixed arg-line)
+            (roi-line-other arg-line)
+
+
+            )))
 
 (define (print-list-account-roi data)
   (for ([account-data data])
@@ -209,6 +220,24 @@ from struct account-roi
     (print-roi-line (account-roi-total-roi-line account-data))))
 
 
+;; subtract value and allocation fields only, leave other fields blank
+(define (subtract-roi-line line1 line2)
+  (let ([result 
+         (roi-line
+          "Difference" 0 0
+          (- (roi-line-value line1) (roi-line-value line2))
+          0 0 0 ""
+          (- (roi-line-ca line1) (roi-line-ca line2))
+          (- (roi-line-us line1) (roi-line-us line2))
+          (- (roi-line-intl line1) (roi-line-intl line2))
+          (- (roi-line-fixed line1) (roi-line-fixed line2))
+          (- (roi-line-other line1) (roi-line-other line2)))])
+    result))
+
+;commo-id shares price value cost gain-loss roi error-message
+;                           ca us intl fixed other) #:transparent)
+
+
 ;; ------------------------------
 ;;  ROI REPORT SUMMARY FUNCTIONS
 ;; ------------------------------
@@ -218,16 +247,16 @@ from struct account-roi
   (cond
     [(null? alloc-hash) (alloc-rec commo-id 0 0 0 0 0)]
     [else         
-  (if (not (hash-has-key? alloc-hash commo-id))
-    (error (format "There is no allocation data for commodity '~a'"))
-    (let ([source-alloc-rec (hash-ref alloc-hash commo-id)])
-      (alloc-rec
-       commo-id
-       (* value (alloc-rec-ca source-alloc-rec))
-       (* value (alloc-rec-us source-alloc-rec))
-       (* value (alloc-rec-intl source-alloc-rec))
-       (* value (alloc-rec-fixed source-alloc-rec))
-       (* value (alloc-rec-other source-alloc-rec)))))]))
+     (if (not (hash-has-key? alloc-hash commo-id))
+         (error (format "There is no allocation data for commodity '~a'"))
+         (let ([source-alloc-rec (hash-ref alloc-hash commo-id)])
+           (alloc-rec
+            commo-id
+            (* value (alloc-rec-ca source-alloc-rec))
+            (* value (alloc-rec-us source-alloc-rec))
+            (* value (alloc-rec-intl source-alloc-rec))
+            (* value (alloc-rec-fixed source-alloc-rec))
+            (* value (alloc-rec-other source-alloc-rec)))))]))
 
 ; return a roi-line for the account on the given date
 ; return null if no shares
@@ -301,11 +330,12 @@ from struct account-roi
        (roi-line-gain-loss line)
        (roi-line-roi line)
        (roi-line-error-message line)
-       (format "~a%" (exact-round (* 100 (/ (roi-line-ca line) (roi-line-value line)))))
-       (format "~a%" (exact-round (* 100 (/ (roi-line-us line) (roi-line-value line)))))
-       (format "~a%" (exact-round (* 100 (/ (roi-line-intl line) (roi-line-value line)))))
-       (format "~a%" (exact-round (* 100 (/ (roi-line-fixed line) (roi-line-value line)))))
-       (format "~a%" (exact-round (* 100 (/ (roi-line-other line) (roi-line-value line)))))
+       ;(format "~a%" (exact-round (* 100 (/ (roi-line-ca line) (roi-line-value line)))))
+       (/ (roi-line-ca line) (roi-line-value line))
+       (/ (roi-line-us line) (roi-line-value line))
+       (/ (roi-line-intl line) (roi-line-value line))
+       (/ (roi-line-fixed line) (roi-line-value line))
+       (/ (roi-line-other line) (roi-line-value line))
        )))
 
 
@@ -327,6 +357,15 @@ from struct account-roi
        (exact-round (* (alloc-rec-fixed target-alloc-rec) (roi-line-value line)))
        (exact-round (* (alloc-rec-other target-alloc-rec) (roi-line-value line)))
        )))
+
+
+(define (make-roi-line-from-allocation-rec target-allocation)
+  (roi-line "" 0 0 0 0 0 0 ""
+   (alloc-rec-ca target-allocation)
+   (alloc-rec-us target-allocation)
+   (alloc-rec-intl target-allocation)
+   (alloc-rec-fixed target-allocation)
+   (alloc-rec-other target-allocation)))
 
 ;; -----------------------------------------------
 ;;  SNAPSHOT AT DATE FOR SINGLE COMMODITY ACCOUNT

@@ -3,6 +3,7 @@
 (provide file->alloc-hash
          valid-alloc-hash?
          alloc-rec
+         alloc-rec-commodity
          alloc-rec-ca
          alloc-rec-us
          alloc-rec-intl

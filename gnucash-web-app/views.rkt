@@ -569,23 +569,36 @@
                                      (include-template "templates/allocation-view.html"))))
 |#
 
+(define (alloc-rec-except-target allocation-hash)
+  (filter (lambda (rec) (not (equal? "TARGET" (alloc-rec-commodity rec))))
+   (hash-values allocation-hash)))
+
 
 (define (allocation-view gnucash-data arg-date url [allocation-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
-  (printf "DEBUG URL ~a~%" url)
-  (let* ([master-list-roi (roi-on-date gnucash-data arg-date allocation-hash)]
+  (let* ([list-alloc-rec (if (null? allocation-hash) '()
+                             (alloc-rec-except-target allocation-hash))]
+         [master-list-roi (roi-on-date gnucash-data arg-date allocation-hash)]
          [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]         
          [actual-allocation-percent-line (make-allocation-percent grand-total-line)]
          [target-allocation (hash-ref allocation-hash "TARGET")]
          [target-allocation-values
           (add-allocation-to-roi-line grand-total-line target-allocation)]
+         [target-allocation-percent (make-roi-line-from-allocation-rec target-allocation)]
+         [difference-allocation-percent (subtract-roi-line target-allocation-percent actual-allocation-percent-line)]
+         [difference-allocation-value (subtract-roi-line target-allocation-values grand-total-line)]
          [view-heading (format "Asset Allocation - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
          [main-content-heading view-heading]
          [date-selector (make-date-selector gnucash-data arg-date url)]
          [form-url (substring url 0 (- (string-length url) 10))]
          [extra-javascript (include-template "static/js/date-selector.js")])
+
+    
+    (displayln (hash-values allocation-hash))
+    ;(print-roi-line target-allocation-percentage)
+    ;(print-roi-line actual-allocation-percent-line)
     (response-200-base-template page-title main-content-heading
                                 (include-template "templates/allocation-view.html"))))
 
