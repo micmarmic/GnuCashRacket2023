@@ -24,6 +24,9 @@
          roi-report-view
          allocation-view
 
+         test-form-post-view
+         test-form-get-view
+
          strip-decimal
          )
 
@@ -60,6 +63,36 @@
   (if CATCH-EXCEPTIONS-ON
       (exception-page (exn-message e))
       (raise e)))
+
+;;
+;; Test GET vs PUT
+;; 
+(define (test-form-get-view url)
+    (let* ([view-heading (format "TEST - GET")]
+           [page-title (format "~a | GnuCash" view-heading)]
+           [main-content-heading view-heading]
+           [form-url url]
+           [fname-value ""]
+           [lname-value ""]
+           [view-data  "NO DATA"]
+           [form (include-template "templates/test-form.html")])           
+      (response-200-base-template page-title main-content-heading
+                                  (include-template "templates/test-form-view.html"))))
+
+;;
+;; Test GET vs PUT
+;; 
+(define (test-form-post-view url data-hash)
+    (let* ([view-heading (format "TEST - POST")]
+           [page-title (format "~a | GnuCash" view-heading)]
+           [main-content-heading "<h1>test-form method POST</h1>"]
+           [fname-value (hash-ref data-hash "fname")]
+           [lname-value (hash-ref data-hash "lname")]
+           [view-data (~a data-hash)]
+           [form-url url]
+           [form (include-template "templates/test-form.html")])
+      (response-200-base-template page-title main-content-heading
+                                  (include-template "templates/test-form-view.html"))))
 
 ;; ------------
 ;;  ROI REPORT

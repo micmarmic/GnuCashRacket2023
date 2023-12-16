@@ -8,15 +8,15 @@
          "finance.rkt"
          "allocation.rkt")
 
-(define %global-gnucash-data% (void)) ; global set in (start-app)
-(define %global-allocation-data% (void)) ; global set in (start-app)
+(define %global-gnucash-data% null) ; global set in (start-app)
+(define %global-allocation-data% null) ; global set in (start-app)
 ;(define %base-template-path% "templates/base-template.html")
 
 ;; ----------------
 ;;  CONFIG STRINGS
 ;; ----------------
-(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
-;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file.gnucash")
+;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file1.gnucash")
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
 
 (define CATCH-EXCEPTIONS-ON #f)
@@ -138,6 +138,24 @@ Images can be served statically using http-response-image.
   ;(printf "====~a~%" (url->string (request-uri request)))
   (url->string (request-uri request)))
 
+; field1=&field2=dasfd -> hash (field1 "") (field2 "dasfd")
+(define (post-data/raw->hash request)  
+  (define data (~a (request-post-data/raw request)))
+  (define fields (if (string-contains? data "&")
+                     (string-split data "&")
+                     (list data)))
+  (define field-hash
+    (make-hash
+     (for/list ([raw-field (in-list fields)])
+       (define field-data (string-split raw-field "="))
+       (if (= 1 (length field-data))
+           (list (first field-data) "")
+           (list (first field-data) (second field-data))))))
+  field-hash)
+
+  
+  
+    
 #|
 (with-handlers ([exn:fail? (λ (e) (printf "EXCEPTION: ~a~%" (exn-message e)))])
   (raise (my-exception "FORCED ERROR" (current-continuation-marks))))
@@ -158,6 +176,9 @@ Images can be served statically using http-response-image.
    [("") (lambda (request) (account-list-view %global-gnucash-data% request))]
    
    [("dashboard") dashboard-view]
+   [("test-form") #:method "get" (lambda (request) (test-form-get-view (get-url request)))]
+   [("test-form") #:method "post" (lambda (request)
+                                    (test-form-post-view (get-url request) (post-data/raw->hash request)))]
    [else generic-404]))
 
 (define (request-handler request)
@@ -174,7 +195,7 @@ Images can be served statically using http-response-image.
   (displayln "")  
 
   (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
-  (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))
+  (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))  
   (printf "Loading data complete.~%")
   (displayln "")  
   (print-overview %global-gnucash-data%)
