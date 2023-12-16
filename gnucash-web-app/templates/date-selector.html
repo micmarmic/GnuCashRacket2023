@@ -1,20 +1,25 @@
-<div class="mb-3">
-    <form action="javascript:;" onsubmit="goToDate()" method="get">
-        <select class="" id="inputYear" onchange="resetDays()">
-            @in[opt year-options]{
-            <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
-            }
-        </select>
-        <select class="" id="inputMonth" onchange="resetDays()">
-            @in[opt month-options]{
-            <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
-            }
-        </select>
-        <select class="" id="inputDay">
-            @in[opt day-options]{
-            <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)</option>
-            }
-        </select>
-        <input type="submit" value="Go">
-    </form>
+<div class="report-section w600 date-selector">
+    <div class="mb-3 mt-10">
+        <form action="javascript:;" onsubmit="goToDate()" method="get">
+            <select class="" id="inputYear" onchange="resetDays()">
+                @in[opt year-options]{
+                <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)
+                </option>
+                }
+            </select>
+            <select class="" id="inputMonth" onchange="resetDays()">
+                @in[opt month-options]{
+                <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)
+                </option>
+                }
+            </select>
+            <select class="" id="inputDay">
+                @in[opt day-options]{
+                <option @(select-option-selected opt) value="@(select-option-value opt)">@(select-option-value opt)
+                </option>
+                }
+            </select>
+            <input type="submit" value="Go">
+        </form>
+    </div>
 </div>

@@ -1,7 +1,8 @@
+@date-selector
 <div class="report-section w600">
     <h3>Allocation Summary</h3>
 
-    <h3>Total Market Value: 10,000</h3>
+    <h3>Total Market Value: @(add-dollar-sign (roi-line-value grand-total-line))</h3>
     <p class="text-center"><em>Percentages may not add up to 100% due to rounding</em></p>
 
     <h4>Percentages</h4>
@@ -60,27 +61,27 @@
         <tbody>
             <tr>
                 <td class="text-center">Target Allocation</td>
-                <td class="text-center">@(roi-line-ca target-allocation-values)</td>
-                <td class="text-center">@(roi-line-us target-allocation-values)</td>
-                <td class="text-center">@(roi-line-intl target-allocation-values)</td>
-                <td class="text-center">@(roi-line-fixed target-allocation-values)</td>
-                <td class="text-center">@(roi-line-other target-allocation-values)</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-ca target-allocation-values))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-us target-allocation-values))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-intl target-allocation-values))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-fixed target-allocation-values))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-other target-allocation-values))</td>
             </tr>
             <tr>
                 <td class="text-center">Actual Allocation</td>
-                <td class="text-center">@(roi-line-ca grand-total-line)</td>
-                <td class="text-center">@(roi-line-us grand-total-line)</td>
-                <td class="text-center">@(roi-line-intl grand-total-line)</td>
-                <td class="text-center">@(roi-line-fixed grand-total-line)</td>
-                <td class="text-center">@(roi-line-other grand-total-line)</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-ca grand-total-line))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-us grand-total-line))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-intl grand-total-line))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-fixed grand-total-line))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-other grand-total-line))</td>
             </tr>
             <tr>
                 <td class="text-center">Difference</td>
-                <td class="text-center">@(roi-line-ca difference-allocation-value)</td>
-                <td class="text-center">@(roi-line-us difference-allocation-value)</td>
-                <td class="text-center">@(roi-line-intl difference-allocation-value)</td>
-                <td class="text-center">@(roi-line-fixed difference-allocation-value)</td>
-                <td class="text-center">@(roi-line-other difference-allocation-value)</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-ca difference-allocation-value))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-us difference-allocation-value))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-intl difference-allocation-value))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-fixed difference-allocation-value))</td>
+                <td class="text-center">@(add-dollar-sign (roi-line-other difference-allocation-value))</td>
             </tr>
         </tbody>
     </table>
@@ -140,7 +141,7 @@
         </tbody>
     </table>
 </div>
-
+<!---
 <div class="report-section mw60p">
     <h3>Account Details</h3>
     <h4>Account 1</h4>
@@ -194,6 +195,7 @@
         </tbody>
     </table>
 </div>
+-->
 <script>
-
+    @extra-javascript
 </script>

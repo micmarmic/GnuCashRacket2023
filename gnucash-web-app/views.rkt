@@ -23,8 +23,8 @@
          roi-report-view
          allocation-view
 
-         strip-decimal)
-
+         strip-decimal
+         add-dollar-sign)
 
 ;;
 ;; GENERAL HELPERS
@@ -36,6 +36,18 @@
   (if (string-contains? str-value ".")
       (first (string-split str-value "."))
       str-value))
+
+(define (add-dollar-sign input)
+  (if (string? input)
+      (if (string-prefix? input "-")
+          (string-append "-$" (substring input 1))
+          (string-append "$" input))
+      (let ([value (exact-round input)])
+        ;(printf "value: ~a negative? ~a formatted: ~a~%</br>" value (negative? value) (format "-$~a" (abs value)))
+        (if (negative? value)
+            (format "-$~a" (abs value))
+            (format "$~a" (abs value))))))
+          
 
 ;;
 ;; DEBUG LET EXCEPTIONS RISE UP

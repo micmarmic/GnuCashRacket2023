@@ -22,6 +22,10 @@ html {
    border-radius: 5px;
 }
 
+.date-selector {
+    display: flex;
+    justify-content: center;
+}
 
 .mw80p {
    max-width: 80%;

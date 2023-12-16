@@ -27,11 +27,6 @@
                 <td class="text-right">@(real->decimal-string(roi-line-value commodity))</td>
                 <td class="text-right">@(real->decimal-string(roi-line-gain-loss commodity))</td>
                 <td class="text-right">@(real->decimal-string(roi-line-roi commodity))%</td>
-                <td class="text-right">@(real->decimal-string(roi-line-ca commodity))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-us commodity))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-intl commodity))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-fixed commodity))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-other commodity))</td>
             </tr>
             }
             <!-- hard-code style to override alternate colors on rows -->
@@ -60,11 +55,6 @@
                 <td class="text-right">@(account-roi-grand-total-value act-roi)</td>
                 <td class="text-right">&nbsp;</td>
                 <td class="text-right">&nbsp;</td>
-                <td class="text-right">@(real->decimal-string(account-roi-ca act-roi))</td>
-                <td class="text-right">@(real->decimal-string(account-roi-us act-roi))</td>
-                <td class="text-right">@(real->decimal-string(account-roi-intl act-roi))</td>
-                <td class="text-right">@(real->decimal-string(account-roi-fixed act-roi))</td>
-                <td class="text-right">@(real->decimal-string(account-roi-other act-roi))</td>
             </tr>
         </tbody>
     </table>
@@ -88,11 +78,6 @@
                 <td class="text-right">@(real->decimal-string(roi-line-value grand-total-line))</td>
                 <td class="text-right">@(real->decimal-string(roi-line-gain-loss grand-total-line))</td>
                 <td class="text-right">@(real->decimal-string(roi-line-roi grand-total-line))%</td>
-                <td class="text-right">@(real->decimal-string(roi-line-ca grand-total-line))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-us grand-total-line))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-intl grand-total-line))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-fixed grand-total-line))</td>
-                <td class="text-right">@(real->decimal-string(roi-line-other grand-total-line))</td>
             </tr>
         </tbody>
     </table>
