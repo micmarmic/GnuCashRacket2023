@@ -9,6 +9,7 @@
          alloc-rec-intl
          alloc-rec-fixed
          alloc-rec-other
+         alloc-rec<?
          as-percent-string)
 
 (require rackunit)
@@ -68,10 +69,14 @@ MET
 
 ;;
 ;; STRUCT ALLOC-REC AND UTILS
-;;
+;;(
 
 
 (struct alloc-rec (commodity ca us intl fixed other) #:transparent)
+
+(define (alloc-rec<? a1 a2)
+  (string<? (alloc-rec-commodity a1) (alloc-rec-commodity a2)))
+
 
 ;; make alloc-rec records from elements in list
 ;; return an alloc-rec

@@ -11,6 +11,7 @@
          "simple-date.rkt"
          "settings.rkt"
          "allocation.rkt"
+         "formatting-utils.rkt"
          )
 
 (provide ledger-view
@@ -24,7 +25,7 @@
          allocation-view
 
          strip-decimal
-         add-dollar-sign)
+         )
 
 ;;
 ;; GENERAL HELPERS
@@ -37,17 +38,6 @@
       (first (string-split str-value "."))
       str-value))
 
-(define (add-dollar-sign input)
-  (if (string? input)
-      (if (string-prefix? input "-")
-          (string-append "-$" (substring input 1))
-          (string-append "$" input))
-      (let ([value (exact-round input)])
-        ;(printf "value: ~a negative? ~a formatted: ~a~%</br>" value (negative? value) (format "-$~a" (abs value)))
-        (if (negative? value)
-            (format "-$~a" (abs value))
-            (format "$~a" (abs value))))))
-          
 
 ;;
 ;; DEBUG LET EXCEPTIONS RISE UP
@@ -581,9 +571,12 @@
                                      (include-template "templates/allocation-view.html"))))
 |#
 
+
+;; skip target, then sort commodities alphabetically
 (define (alloc-rec-except-target allocation-hash)
-  (filter (lambda (rec) (not (equal? "TARGET" (alloc-rec-commodity rec))))
-   (hash-values allocation-hash)))
+  (let ([filtered (filter (lambda (rec) (not (equal? "TARGET" (alloc-rec-commodity rec))))
+                          (hash-values allocation-hash))])
+    (sort filtered alloc-rec<?)))
 
 
 (define (allocation-view gnucash-data arg-date url [allocation-hash null])
@@ -608,7 +601,7 @@
          [extra-javascript (include-template "static/js/date-selector.js")])
 
     
-    (displayln (hash-values allocation-hash))
+    ;(displayln (hash-values allocation-hash))
     ;(print-roi-line target-allocation-percentage)
     ;(print-roi-line actual-allocation-percent-line)
     (response-200-base-template page-title main-content-heading

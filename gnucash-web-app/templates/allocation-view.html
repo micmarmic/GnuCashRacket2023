@@ -2,8 +2,10 @@
 <div class="report-section w600">
     <h3>Allocation Summary</h3>
 
-    <h3>Total Market Value: @(add-dollar-sign (roi-line-value grand-total-line))</h3>
+    <h3>Total Market Value: @(format-currency (roi-line-value grand-total-line))</h3>
     <p class="text-center"><em>Percentages may not add up to 100% due to rounding</em></p>
+    <p class="text-center"><em>Positive: buy more --- Negative: sell some</em></p>
+
 
     <h4>Percentages</h4>
     <table class="table table-striped table-sm">
@@ -61,31 +63,30 @@
         <tbody>
             <tr>
                 <td class="text-center">Target Allocation</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-ca target-allocation-values))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-us target-allocation-values))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-intl target-allocation-values))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-fixed target-allocation-values))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-other target-allocation-values))</td>
+                <td class="text-center">@(format-currency (roi-line-ca target-allocation-values))</td>
+                <td class="text-center">@(format-currency (roi-line-us target-allocation-values))</td>
+                <td class="text-center">@(format-currency (roi-line-intl target-allocation-values))</td>
+                <td class="text-center">@(format-currency (roi-line-fixed target-allocation-values))</td>
+                <td class="text-center">@(format-currency (roi-line-other target-allocation-values))</td>
             </tr>
             <tr>
                 <td class="text-center">Actual Allocation</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-ca grand-total-line))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-us grand-total-line))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-intl grand-total-line))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-fixed grand-total-line))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-other grand-total-line))</td>
+                <td class="text-center">@(format-currency (roi-line-ca grand-total-line))</td>
+                <td class="text-center">@(format-currency (roi-line-us grand-total-line))</td>
+                <td class="text-center">@(format-currency (roi-line-intl grand-total-line))</td>
+                <td class="text-center">@(format-currency (roi-line-fixed grand-total-line))</td>
+                <td class="text-center">@(format-currency (roi-line-other grand-total-line))</td>
             </tr>
             <tr>
                 <td class="text-center">Difference</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-ca difference-allocation-value))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-us difference-allocation-value))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-intl difference-allocation-value))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-fixed difference-allocation-value))</td>
-                <td class="text-center">@(add-dollar-sign (roi-line-other difference-allocation-value))</td>
+                <td class="text-center">@(format-currency (roi-line-ca difference-allocation-value))</td>
+                <td class="text-center">@(format-currency (roi-line-us difference-allocation-value))</td>
+                <td class="text-center">@(format-currency (roi-line-intl difference-allocation-value))</td>
+                <td class="text-center">@(format-currency (roi-line-fixed difference-allocation-value))</td>
+                <td class="text-center">@(format-currency (roi-line-other difference-allocation-value))</td>
             </tr>
         </tbody>
     </table>
-    <p class="text-center"><em>Positive: buy more --- Negative: sell some</em></p>
 </div>
 
 <div class="report-section w600">
