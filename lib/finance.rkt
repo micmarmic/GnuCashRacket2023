@@ -9,9 +9,9 @@
 
 (require rackunit)
 
-(require "gnucash-objects.rkt"
-         "gnucash-parser.rkt"
-         "allocation.rkt"
+(require (file "gnucash-objects.rkt")
+         (file "gnucash-parser.rkt")
+         (file "allocation.rkt")
          )
 
 (provide roi-on-date 

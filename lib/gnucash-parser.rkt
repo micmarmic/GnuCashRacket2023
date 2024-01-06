@@ -19,7 +19,7 @@ single "gnucash-data%" class working as a repository.
   racket/gui/base)
 
 
-(require "gnucash-objects.rkt")
+(require (file "gnucash-objects.rkt"))
          ; link to views will cycle)
 
 (define %TEMPLATE-ROOT-FULLNAME% "Template Root")

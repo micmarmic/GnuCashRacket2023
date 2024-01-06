@@ -6,12 +6,12 @@
          racket/runtime-path ; build path to css files
          rackunit)
 
-(require "pagination.rkt"
-         "finance.rkt"
-         "simple-date.rkt"
-         "settings.rkt"
-         "allocation.rkt"
-         "formatting-utils.rkt"
+(require (file "pagination.rkt")
+         (file "../lib/finance.rkt")
+         (file "../lib/simple-date.rkt")
+         (file "../settings.rkt")
+         (file "../lib/allocation.rkt")
+         (file "../lib/formatting-utils.rkt")
          )
 
 (provide ledger-view

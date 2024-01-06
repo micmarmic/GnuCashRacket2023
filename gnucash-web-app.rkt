@@ -2,11 +2,11 @@
 (require web-server/servlet
          web-server/servlet-env
          web-server/templates         
-         "gnucash-parser.rkt"
-         "gnucash-objects.rkt"
-         "views.rkt"
-         "finance.rkt"
-         "allocation.rkt")
+         (file "lib/allocation.rkt")
+         (file "lib/finance.rkt")
+         (file "lib/gnucash-parser.rkt")
+         (file "lib/gnucash-objects.rkt")
+         (file "views/web-views.rkt"))
 
 (define %global-gnucash-data% null) ; global set in (start-app)
 (define %global-allocation-data% null) ; global set in (start-app)
@@ -152,7 +152,6 @@ Images can be served statically using http-response-image.
            (list (first field-data) "")
            (list (first field-data) (second field-data))))))
   field-hash)
-
   
   
     
