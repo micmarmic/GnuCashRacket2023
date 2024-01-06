@@ -1,8 +1,24 @@
 @date-selector
 <div class="report-section w600">
+    <form action="@|form-url|" method="post">
+        <p>
+            <label for="select1">Transactions 1:</label>
+            <select class="" id="inputTrans1">
+                <!-- commodites from target-allocation-values-->
+                @in[alloc list-alloc-rec]{
+                <option value="@(alloc-rec-commodity target-allocation)">@(alloc-rec-commodity
+                    alloc)</option>
+                }
+            </select>
+            <input type="number" id="value1" name="value1" value="TODO"><br><br>
+        </p>
+        <input type="submit" value="Go">
+    </form>
+</div>
+<div class="report-section w600">
     <h3>Allocation Summary</h3>
 
-    <h3>Total Market Value: @(format-currency (roi-line-value grand-total-line))</h3>
+    <h3>Total Market Value: @(format-rounded-currency (roi-line-value grand-total-line))</h3>
     <p class="text-center"><em>Percentages may not add up to 100% due to rounding</em></p>
     <p class="text-center"><em>Positive: buy more --- Negative: sell some</em></p>
 
@@ -53,37 +69,37 @@
         <thead>
             <tr class="roi-heading">
                 <th class="text-center"></th>
-                <th class="text-center">Canada</th>
-                <th class="text-center">US</th>
-                <th class="text-center">International</th>
-                <th class="text-center">Cash</th>
-                <th class="text-center">Other</th>
+                <th class="text-right">Canada</th>
+                <th class="text-right">US</th>
+                <th class="text-right">International</th>
+                <th class="text-right">Cash</th>
+                <th class="text-right">Other</th>
             </tr>
         </thead>
         <tbody>
             <tr>
-                <td class="text-center">Target Allocation</td>
-                <td class="text-center">@(format-currency (roi-line-ca target-allocation-values))</td>
-                <td class="text-center">@(format-currency (roi-line-us target-allocation-values))</td>
-                <td class="text-center">@(format-currency (roi-line-intl target-allocation-values))</td>
-                <td class="text-center">@(format-currency (roi-line-fixed target-allocation-values))</td>
-                <td class="text-center">@(format-currency (roi-line-other target-allocation-values))</td>
+                <td class="text-right">Target Allocation</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-ca target-allocation-values))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-us target-allocation-values))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-intl target-allocation-values))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-fixed target-allocation-values))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-other target-allocation-values))</td>
             </tr>
             <tr>
-                <td class="text-center">Actual Allocation</td>
-                <td class="text-center">@(format-currency (roi-line-ca grand-total-line))</td>
-                <td class="text-center">@(format-currency (roi-line-us grand-total-line))</td>
-                <td class="text-center">@(format-currency (roi-line-intl grand-total-line))</td>
-                <td class="text-center">@(format-currency (roi-line-fixed grand-total-line))</td>
-                <td class="text-center">@(format-currency (roi-line-other grand-total-line))</td>
+                <td class="text-right">Actual Allocation</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-ca grand-total-line))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-us grand-total-line))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-intl grand-total-line))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-fixed grand-total-line))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-other grand-total-line))</td>
             </tr>
             <tr>
-                <td class="text-center">Difference</td>
-                <td class="text-center">@(format-currency (roi-line-ca difference-allocation-value))</td>
-                <td class="text-center">@(format-currency (roi-line-us difference-allocation-value))</td>
-                <td class="text-center">@(format-currency (roi-line-intl difference-allocation-value))</td>
-                <td class="text-center">@(format-currency (roi-line-fixed difference-allocation-value))</td>
-                <td class="text-center">@(format-currency (roi-line-other difference-allocation-value))</td>
+                <td class="text-right">Difference</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-ca difference-allocation-value))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-us difference-allocation-value))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-intl difference-allocation-value))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-fixed difference-allocation-value))</td>
+                <td class="text-right">@(format-rounded-currency (roi-line-other difference-allocation-value))</td>
             </tr>
         </tbody>
     </table>

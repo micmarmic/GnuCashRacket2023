@@ -51,7 +51,8 @@
          make-allocation-percent
          make-alloc-rec
          add-allocation-to-roi-line
-         subtract-roi-line
+         subtract-roi-line         
+         adjust-allocation-percent
          )
 
 #|
@@ -367,6 +368,28 @@ from struct account-roi
    (alloc-rec-fixed target-allocation)
    (alloc-rec-other target-allocation)))
 
+;; ------------------------------------------------------------------
+;;  RECALCULATE ALLOCATION BASED ON SELECTED COMMODITIES AND AMOUNTS
+;; ------------------------------------------------------------------
+
+
+;; given an allocation value (roi-line) return an roi-line, 
+;; after recalculating based on the user input of commodity-id and value
+;; and the allocation-hash defined the allocation per commodity
+;; input-commodity-value hash is keyed on commodity ID and contains an amount (exact?)
+;; example
+;; current CA:
+(define (adjust-allocation-percent input-commodity-value-hash actual-allocation-percent-line allocation-hash)
+  (let loop ([inputs (hash->list input-commodity-value-hash)])
+    (cond [(empty? inputs) void]
+          [else
+           (define current-input (first inputs))
+           (define commo-id (first current-input))
+           (define value (second current-input))
+           (printf "~a ~a" commo-id value)
+           (loop (rest inputs))])))
+
+  
 ;; -----------------------------------------------
 ;;  SNAPSHOT AT DATE FOR SINGLE COMMODITY ACCOUNT
 ;; -----------------------------------------------

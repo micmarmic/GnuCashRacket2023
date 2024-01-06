@@ -2,7 +2,7 @@
 
 (require rackunit)
 
-(provide format-currency)
+(provide format-rounded-currency)
 
 (define (string-take-left string num-chars)
   (substring string 0 num-chars))
@@ -15,16 +15,6 @@
 
 (check-equal? (string-take-right "1234" 2) "34")
 
-(define (format-currency input)
-  (if (string? input)
-      (if (string-prefix? input "-")
-          (string-append "-$" (substring input 1))
-          (string-append "$" input))
-      (let ([value (exact-round input)])
-        ;(printf "value: ~a negative? ~a formatted: ~a~%</br>" value (negative? value) (format "-$~a" (abs value)))
-        (if (negative? value)
-            (format "-$~a" (add-commas (abs value)))
-            (format "$~a" (add-commas value))))))
 
 (define (add-commas integer)
   (cond
@@ -48,6 +38,22 @@
 (check-equal? (add-commas 999999) "999,999")
 (check-equal? (add-commas 9999999) "9,999,999")
            
-  
+ 
+(define (format-rounded-currency input)
+  (let ([input-as-number 
+         (cond [(string? input) (string->number input)]
+               [(number? input) input]
+               [else error "format-currency only accepts a string or a number as input"])])
+        (let ([value (exact-round input-as-number)])
+          ;(printf "value: ~a negative? ~a formatted: ~a~%</br>" value (negative? value) (format "-$~a" (abs value)))
+          (if (negative? value)
+              (format "-$~a" (add-commas (abs value)))
+              (format "$~a" (add-commas value))))))
+
+(check-equal? (format-rounded-currency "123") "$123")
+(check-equal? (format-rounded-currency "123.22") "$123")
+(check-equal? (format-rounded-currency "123.5") "$124")
+(check-equal? (format-rounded-currency "-123.5") "-$124")
+
   
   

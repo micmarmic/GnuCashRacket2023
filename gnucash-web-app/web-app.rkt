@@ -15,8 +15,8 @@
 ;; ----------------
 ;;  CONFIG STRINGS
 ;; ----------------
-;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
-(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file1.gnucash")
+(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file1.gnucash")
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
 
 (define CATCH-EXCEPTIONS-ON #f)
@@ -163,8 +163,11 @@ Images can be served statically using http-response-image.
 
 (define-values (dispatch generate-url)
   (dispatch-rules
-   [("allocation" (string-arg))
+   [("allocation" (string-arg))  #:method "get"
     (lambda (request date) (allocation-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
+   [("allocation" (string-arg)) #:method "post"
+    (lambda (request date)
+      (allocation-view %global-gnucash-data% date (get-url request) %global-allocation-data% (post-data/raw->hash request)))]
    [("roi-report" (string-arg))
     (lambda (request date) (roi-report-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
    ;; id page-number split-flag (s1 display splits, else just trans)

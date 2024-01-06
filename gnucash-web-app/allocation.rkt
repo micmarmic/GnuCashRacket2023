@@ -22,7 +22,8 @@
 (define (as-percent-string value)
   ; notice add % after ~a to get "n%"
   (format "~a%" (exact-round (* 100 value))))
-  
+
+
 
 #|
 1. ASSET ALLOCATION
@@ -132,8 +133,6 @@ MET
   alloc-hash)
 
 
- 
-  
 
 ;; -------
 ;;  TESTS

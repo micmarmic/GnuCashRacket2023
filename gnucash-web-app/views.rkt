@@ -612,7 +612,7 @@
     (sort filtered alloc-rec<?)))
 
 
-(define (allocation-view gnucash-data arg-date url [allocation-hash null])
+(define (allocation-view gnucash-data arg-date url allocation-hash [data-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
   (let* ([list-alloc-rec (if (null? allocation-hash) '()
@@ -626,6 +626,10 @@
          [target-allocation-percent (make-roi-line-from-allocation-rec target-allocation)]
          [difference-allocation-percent (subtract-roi-line target-allocation-percent actual-allocation-percent-line)]
          [difference-allocation-value (subtract-roi-line target-allocation-values grand-total-line)]
+         [adjusted-allocation-percent
+          (if (null? data-hash)
+              null
+              (adjust-allocation-percent data-hash actual-allocation-percent-line allocation-hash))]
          [view-heading (format "Asset Allocation - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
          [main-content-heading view-heading]
