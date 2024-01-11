@@ -17,6 +17,7 @@
 (provide ledger-view
          
          generic-404
+         app-cannot-start-view
          response-200-base-template
          exception-page
          dashboard-view
@@ -746,3 +747,14 @@
   (if (equal? "" text)
       "d-none"
       ""))
+
+;; -------------
+;;  ERROR PAGES
+;; -------------
+(define (app-cannot-start-view error-message)
+    (let* ([view-heading "App Cannot Start"]
+           [page-title (format "~a | GnuCash" view-heading)]
+           [main-content-heading view-heading]
+           [error-message error-message])
+      (response-200-base-template page-title main-content-heading
+                                  (include-template "templates/app-cannot-start-view.html"))))

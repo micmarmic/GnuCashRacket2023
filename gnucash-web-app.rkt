@@ -10,6 +10,9 @@
 
 (define %global-gnucash-data% null) ; global set in (start-app)
 (define %global-allocation-data% null) ; global set in (start-app)
+
+ ; global to display error page with message when load fail (with-handlers)
+(define %global-load-fail-error-text% "")
 ;(define %base-template-path% "templates/base-template.html")
 
 ;; ----------------
@@ -177,6 +180,7 @@ Images can be served statically using http-response-image.
 
    [("") (lambda (request) (account-list-view %global-gnucash-data% request))]
    
+   [("app-cannot-start") (lambda (request) (app-cannot-start-view %global-load-fail-error-text%))]
    [("dashboard") dashboard-view]
    [("test-form") #:method "get" (lambda (request) (test-form-get-view (get-url request)))]
    [("test-form") #:method "post" (lambda (request)
@@ -191,26 +195,37 @@ Images can be served statically using http-response-image.
       (dispatch request)))
 
 (define (start-app) 
-  (displayln "Loading configuration.")    
-  (set! %global-allocation-data% (file->alloc-hash DEFAULT-ALLOCATION-DATA-FILE))
-  (displayln "Configuration okay.")    
-  (displayln "")  
 
-  (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
-  (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))  
-  (printf "Loading data complete.~%")
-  (displayln "")  
-  (print-overview %global-gnucash-data%)
-  (displayln "")  
+  (define root-url "/") ; with handlers may change to error page
+  (with-handlers
+      ([exn:fail? (λ (e)
+                    (set! %global-load-fail-error-text%
+                          (format "ERROR STARTING WEB APP: ~a" (exn-message e))))])
 
-  (printf "Launching the web server.~%")
+    (displayln "Loading configuration.")    
+    (set! %global-allocation-data% (file->alloc-hash DEFAULT-ALLOCATION-DATA-FILE))
+    (displayln "Configuration okay.")    
+    (displayln "")  
+    
+    (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
+    (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))  
+    (printf "Loading data complete.~%")
+    (displayln "")  
+    (print-overview %global-gnucash-data%)
+    (displayln "")
+    (printf "Launching the web server.~%")
+
+    )
   ;; Start the server.
   (serve/servlet request-handler
                  #:launch-browser? #t
-                 #:servlet-path "/"
+                 #:servlet-path (if (equal? "" %global-load-fail-error-text%)
+                                    "/"
+                                    "/app-cannot-start")
                  #:quit? #f
                  #:listen-ip "127.0.0.1"
                  #:port 8000
-                 #:servlet-regexp #rx""))
+                 #:servlet-regexp #rx"")  
+)
 
 (start-app)

@@ -28,7 +28,6 @@
       (define hash-result (make-hash))
       (for/list ([an-account-roi (in-list master-list-roi)])
         (define account-name (send (account-roi-account an-account-roi) get-name))
-        (displayln account-name)
         (define lines-for-account
           (for/list ([a-roi-line (account-roi-child-roi-lines an-account-roi)])
             (list
@@ -37,6 +36,12 @@
              (real->decimal-string(roi-line-value a-roi-line))
              (real->decimal-string(roi-line-gain-loss a-roi-line))
              (real->decimal-string(roi-line-roi a-roi-line)))))
-        (displayln lines-for-account)
-        (hash-set*! hash-result account-name lines-for-account))
+        (hash-set*! hash-result account-name lines-for-account)
+        (hash-set*! hash-result "GRAND TOTAL"
+                    (list (list
+             (roi-line-commo-id grand-total-line)
+             (real->decimal-string(roi-line-cost grand-total-line))
+             (real->decimal-string(roi-line-value grand-total-line))
+             (real->decimal-string(roi-line-gain-loss grand-total-line))
+             (real->decimal-string(roi-line-roi grand-total-line))))))      
       hash-result))

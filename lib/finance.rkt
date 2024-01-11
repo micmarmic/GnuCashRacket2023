@@ -386,7 +386,6 @@ from struct account-roi
            (define current-input (first inputs))
            (define commo-id (first current-input))
            (define value (second current-input))
-           (printf "~a ~a" commo-id value)
            (loop (rest inputs))])))
 
   
@@ -565,9 +564,6 @@ from struct account-roi
   all-account-roi)
 
               
-          ;(let ([snapshot (snapshot-on-closest-date gnucash-data (send child get-id) demo-date)])
-          ;  (when (> (investment-snapshot-shares snapshot) 0)
-          ;    (displayln (investment-snapshot-as-string snapshot)))))))))
 #|
 (define gnucash-data (import-gnucash-file HUGE-SAMPLE-GNUCASH-FILE))
 (define roi-report (roi-on-date gnucash-data demo-date))

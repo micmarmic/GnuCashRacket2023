@@ -47,9 +47,13 @@ Main runs in two phases:
   (displayln "")
 
   (define hash-data (get-roi-table-data %global-gnucash-data% "2023-12-31" %global-allocation-data%))
+  (displayln "Loading complete")
+  
+  (displayln "DEMO")
   (for ([key (hash-keys hash-data)])
     (printf "Account: ~a~%" key)
     (displayln (hash-ref hash-data key)))
+  (displayln "END DEMO")
   
   ;(main-gui %global-gnucash-data%)
 )
