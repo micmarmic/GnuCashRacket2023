@@ -1,15 +1,18 @@
 #lang racket
 
 (require
+  racket/gui/easy
   (file "../lib/finance.rkt")
   (file "../lib/finance.rkt")
+  (file "../lib/string-utils.rkt")
   )
 
 (provide 
          roi-column-headers
          get-roi-table-data
+         display-cannot-start-gui         
          )
-
+         
 
 (define roi-column-headers '("Commodity" "Cost" "Market Value" "Gain Loss" "Roi"))
 
@@ -45,3 +48,23 @@
              (real->decimal-string(roi-line-gain-loss grand-total-line))
              (real->decimal-string(roi-line-roi grand-total-line))))))      
       hash-result))
+
+
+;; ------------------
+;;  CANNOT START GUI
+;; ------------------
+(define (display-cannot-start-gui error-message)
+  (render
+   (window
+    #:title "GnuCash Racket Gui"
+    #:size (list 800 200)    
+    ;; wrap the message, no more than n chars, m per line
+    (vpanel
+     #:alignment (list 'center 'center)
+     (text (wrap-text error-message 200 150))))))
+
+
+  
+  
+  
+  

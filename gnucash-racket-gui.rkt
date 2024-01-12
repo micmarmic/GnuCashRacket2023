@@ -1,4 +1,4 @@
-#lang racket/base
+#lang racket
 
 #|
 This file: gnucash-racket-gui.rkt
@@ -15,10 +15,7 @@ Main runs in two phases:
 2) Display views: load the main GUI; uses menus/buttons to load other views.
 |#
 
-(require web-server/servlet
-         web-server/servlet-env
-         web-server/templates         
-         (file "lib/allocation.rkt")
+(require (file "lib/allocation.rkt")
          (file "lib/finance.rkt")
          (file "lib/gnucash-parser.rkt")
          (file "lib/gnucash-objects.rkt")
@@ -34,28 +31,40 @@ Main runs in two phases:
 ;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\test-file1.gnucash")
 
 (define (main)
-  (displayln "Loading configuration.")    
-  (set! %global-allocation-data% (file->alloc-hash DEFAULT-ALLOCATION-DATA-FILE))
-  (displayln "Configuration okay.")    
-  (displayln "")  
 
-  (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
-  (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))  
-  (printf "Loading data complete.~%")
-  (displayln "")  
-  (print-overview %global-gnucash-data%)
-  (displayln "")
+  (define error-message "")
+  (with-handlers
+      ([exn:fail?
+        (λ (e)
+          (set! error-message
+                (format "ERROR STARTING WEB APP: ~a" (exn-message e))))])
+    
+    (displayln "Loading configuration.")    
+    (set! %global-allocation-data% (file->alloc-hash DEFAULT-ALLOCATION-DATA-FILE))
+    (displayln "Configuration okay.")    
+    (displayln "")  
+    
+    (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
+    (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))  
+    (printf "Loading data complete.~%")
+    (displayln "")  
+    (print-overview %global-gnucash-data%)
+    (displayln "")
 
-  (define hash-data (get-roi-table-data %global-gnucash-data% "2023-12-31" %global-allocation-data%))
-  (displayln "Loading complete")
+    (define hash-data (get-roi-table-data %global-gnucash-data% "2023-12-31" %global-allocation-data%))
+    (displayln "Loading complete")
   
-  (displayln "DEMO")
-  (for ([key (hash-keys hash-data)])
-    (printf "Account: ~a~%" key)
-    (displayln (hash-ref hash-data key)))
-  (displayln "END DEMO")
-  
-  ;(main-gui %global-gnucash-data%)
+    (displayln "DEMO")
+    (for ([key (hash-keys hash-data)])
+      (printf "Account: ~a~%" key)
+      (displayln (hash-ref hash-data key)))
+    (displayln "")
+    (displayln "END DEMO")
+    )
+  (if (equal? "" error-message)
+      (main-gui %global-gnucash-data%)
+      (display-cannot-start-gui error-message)        
+      )
 )
 
 
