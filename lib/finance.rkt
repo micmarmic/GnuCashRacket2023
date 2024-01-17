@@ -515,6 +515,7 @@ from struct account-roi
     (define fullname (send account get-fullname))
     (define children (send account get-children))
     (define cash (account-balance-on-date account arg-date))
+    (printf "DEBUG cash on ~a: ~a~%" arg-date (real->decimal-string cash))
     ;; loop child accounts
     (let loop ([all-children children]
                [all-lines '()]

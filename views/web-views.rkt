@@ -105,7 +105,7 @@
 ;; DEV NOTE: roi-on-date then calc-grand-total... yields a line with the total value
 ;; and the total allocation for all accounts, READY for allocation view
 
-(define (roi-report-view gnucash-data arg-date url [alloc-hash null])
+(define (roi-report-view gnucash-data gnucash-file-path arg-date url [alloc-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
     (let* ([master-list-roi (roi-on-date gnucash-data arg-date alloc-hash)]
@@ -183,7 +183,7 @@
 
 ;; process request for ledger view and trigger response
 ;; based on account-type, refer to bank or investment ledger
-(define (ledger-view gnucash-data arg-account-id request page-number split-flag page-url)
+(define (ledger-view gnucash-data gnucash-file-path arg-account-id request page-number split-flag page-url)
   (let* ([account (send gnucash-data account-by-id arg-account-id)]
          [link-toggle-splits (make-split-toggle-link page-url)]
          [account-name (send account get-fullname)]
@@ -484,7 +484,7 @@
 ;; ACCOUNTS AND ACCOUNT LIST
 ;; -------------------------
 
-(define (account-details gnucash-data request id)
+(define (account-details gnucash-data gnucash-file-path request id)
   (let* ([account (send gnucash-data account-by-id id)]
         [account-str (send account as-string)]
         [back-url "<a href=\"/accounts\">List accounts</a>"])
@@ -501,7 +501,7 @@
               (format "<a href=\"~a\">~a</a>" href account-name) 
               account-name)))
 
-(define (account-list-view gnucash-data request)
+(define (account-list-view gnucash-data gnucash-file-path request)
   (let* ([root-account (send gnucash-data get-root-account)]
         [start-indent ""]
         ;[list-html (children-tree root-account start-indent)]
@@ -613,7 +613,7 @@
     (sort filtered alloc-rec<?)))
 
 
-(define (allocation-view gnucash-data arg-date url allocation-hash [data-hash null])
+(define (allocation-view gnucash-data gnucash-file-path arg-date url allocation-hash [data-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
   (let* ([list-alloc-rec (if (null? allocation-hash) '()

@@ -18,6 +18,7 @@
 ;; ----------------
 ;;  CONFIG STRINGS
 ;; ----------------
+;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\gnucash\\michel.gnucash")
 (define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 ;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file1.gnucash")
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
@@ -25,6 +26,10 @@
 (define CATCH-EXCEPTIONS-ON #f)
 
 
+;;
+;; GLOBAL gnucash-file-name - set to default here, change in (startapp), can be displayed in any view
+;;
+(define %gnucash-file-full-path% DEFAULT-PATH-DATA-FILE)
 
 ;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 
@@ -166,19 +171,19 @@ Images can be served statically using http-response-image.
 (define-values (dispatch generate-url)
   (dispatch-rules
    [("allocation" (string-arg))  #:method "get"
-    (lambda (request date) (allocation-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
+    (lambda (request date) (allocation-view %global-gnucash-data% %gnucash-file-full-path% date (get-url request) %global-allocation-data%))]      
    [("allocation" (string-arg)) #:method "post"
     (lambda (request date)
-      (allocation-view %global-gnucash-data% date (get-url request) %global-allocation-data% (post-data/raw->hash request)))]
+      (allocation-view %global-gnucash-data% %gnucash-file-full-path% date (get-url request) %global-allocation-data% (post-data/raw->hash request)))]
    [("roi-report" (string-arg))
-    (lambda (request date) (roi-report-view %global-gnucash-data% date (get-url request) %global-allocation-data%))]      
+    (lambda (request date) (roi-report-view %global-gnucash-data% %gnucash-file-full-path% date (get-url request) %global-allocation-data%))]      
    ;; id page-number split-flag (s1 display splits, else just trans)
    [("account" (string-arg) (integer-arg) (string-arg))
     (lambda (request account-id page-num split-flag)
-      (ledger-view %global-gnucash-data% account-id request page-num split-flag (get-url request)))]
-   [("accounts") (lambda (request) (account-list-view %global-gnucash-data% request))]
+      (ledger-view %global-gnucash-data% %gnucash-file-full-path% account-id request page-num split-flag (get-url request)))]
+   [("accounts") (lambda (request) (account-list-view %global-gnucash-data% %gnucash-file-full-path% request))]
 
-   [("") (lambda (request) (account-list-view %global-gnucash-data% request))]
+   [("") (lambda (request) (account-list-view %global-gnucash-data% %gnucash-file-full-path% request))]
    
    [("app-cannot-start") (lambda (request) (app-cannot-start-view %global-load-fail-error-text%))]
    [("dashboard") dashboard-view]
@@ -194,7 +199,13 @@ Images can be served statically using http-response-image.
         (dispatch request))
       (dispatch request)))
 
-(define (start-app) 
+(define (start-app)
+
+  (define command-line-args (current-command-line-arguments))
+  (printf "Command line arguments: ~a~%" command-line-args)
+  (when (= 1 (vector-length command-line-args))
+        (set! %gnucash-file-full-path% (vector-ref command-line-args 0)))
+ 
 
   (define root-url "/") ; with handlers may change to error page
   (with-handlers
@@ -207,8 +218,8 @@ Images can be served statically using http-response-image.
     (displayln "Configuration okay.")    
     (displayln "")  
     
-    (printf "Loading data file '~a'~%" DEFAULT-PATH-DATA-FILE) 
-    (set! %global-gnucash-data% (import-gnucash-file DEFAULT-PATH-DATA-FILE))  
+    (printf "Loading data file '~a'~%" %gnucash-file-full-path%) 
+    (set! %global-gnucash-data% (import-gnucash-file %gnucash-file-full-path%))  
     (printf "Loading data complete.~%")
     (displayln "")  
     (print-overview %global-gnucash-data%)
@@ -216,6 +227,7 @@ Images can be served statically using http-response-image.
     (printf "Launching the web server.~%")
 
     )
+
   ;; Start the server.
   (serve/servlet request-handler
                  #:launch-browser? #t

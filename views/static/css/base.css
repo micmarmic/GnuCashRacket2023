@@ -79,6 +79,13 @@ html {
    width: 40%;
 }
 
+.filename {
+   color: grey;
+   font-style: italic;
+   font-size: 9pt;
+   margin-bottom: 10px;
+}
+
 */
 
 /* override bootstrap button to remove decoration on hover 

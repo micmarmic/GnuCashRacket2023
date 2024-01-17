@@ -122,7 +122,6 @@ MET
 
 (define (file->alloc-hash file-path)
   (define alloc-hash (make-hash))
-  (printf "DEBUG trying to get allocatin data from ~a~%" file-path)
   (call-with-input-file file-path    
     (lambda (in)
       (for ([line (in-lines in)])
