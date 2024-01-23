@@ -2,7 +2,7 @@
 (require racket/date)
 (require rackunit)
 
-(provide end-last-month)
+(provide end-last-month today)
 
 ; copied somewhere :)
 (define (leap-year? year)
@@ -25,6 +25,17 @@
 ; return string "yyyy-mm-dd"
 (define (end-last-month)
   (str-date-end-last-month (current-date)))
+
+; return string "yyyy-mm-dd"
+(define (today)
+  (let* ([struct-date (current-date)]
+         [day (date-day struct-date)]
+         [month (date-month struct-date)]
+         [year (date-year struct-date)])
+    (format "~a-~a-~a"
+            year
+            (~r month #:min-width 2 #:pad-string "0")
+            (~r day #:min-width 2 #:pad-string "0"))))
 
 
 ; input is struct-date

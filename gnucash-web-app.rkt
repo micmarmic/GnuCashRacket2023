@@ -18,8 +18,8 @@
 ;; ----------------
 ;;  CONFIG STRINGS
 ;; ----------------
-;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\gnucash\\michel.gnucash")
-(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
+(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\gnucash\\michel.gnucash")
+;;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 ;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\gnucash-web-app\\tests\\test-file1.gnucash")
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
 
@@ -132,11 +132,32 @@ Images can be served statically using http-response-image.
     (http-response-200 (include-template "templates/My-Dashboard.html"))))
 |#
 
-;;
-;; GENERIC EXCEPTION HANDLER
-;;
+;; ------------------
+;;  RELOAD FUNCTIONS
+;; ------------------
+(define (reload-gnucash-data)
+  (with-handlers
+      ([exn:fail? (λ (e)
+                    (set! %global-load-fail-error-text%
+                          (format "ERROR STARTING WEB APP: ~a" (exn-message e))))])
+    
+    (printf "Reloading data file '~a'~%" %gnucash-file-full-path%) 
+    (set! %global-gnucash-data% (import-gnucash-file %gnucash-file-full-path%))  
+    (printf "Loading data complete.~%")
+    (displayln "")  
+    (print-overview)))
 
-;; Call this from the dispatch to wrap all calls in exception handler
+(define (reload-roi-report-view date url)
+  (reload-gnucash-data)
+  ; remove /reload? from the URL
+  (define fixed-url (string-replace url "/reload" ""))
+  (roi-report-view %global-gnucash-data% %gnucash-file-full-path% date fixed-url %global-allocation-data%))      
+
+
+(define (reload-allocation-view date url)
+  (reload-gnucash-data)
+  (define fixed-url (string-replace url "/reload" ""))
+  (allocation-view %global-gnucash-data% %gnucash-file-full-path% date fixed-url %global-allocation-data%))
 
 ;; -----------------------------------
 ;; URL routing table (URL dispatcher).
@@ -161,7 +182,7 @@ Images can be served statically using http-response-image.
            (list (first field-data) (second field-data))))))
   field-hash)
   
-  
+
     
 #|
 (with-handlers ([exn:fail? (λ (e) (printf "EXCEPTION: ~a~%" (exn-message e)))])
@@ -175,8 +196,13 @@ Images can be served statically using http-response-image.
    [("allocation" (string-arg)) #:method "post"
     (lambda (request date)
       (allocation-view %global-gnucash-data% %gnucash-file-full-path% date (get-url request) %global-allocation-data% (post-data/raw->hash request)))]
+   [("allocation" (string-arg) "reload")  #:method "get"
+    (lambda (request date)
+      (reload-allocation-view date (get-url request)))]
    [("roi-report" (string-arg))
     (lambda (request date) (roi-report-view %global-gnucash-data% %gnucash-file-full-path% date (get-url request) %global-allocation-data%))]      
+   [("roi-report" (string-arg) "reload")
+    (lambda (request date) (reload-roi-report-view date (get-url request)))]      
    ;; id page-number split-flag (s1 display splits, else just trans)
    [("account" (string-arg) (integer-arg) (string-arg))
     (lambda (request account-id page-num split-flag)
