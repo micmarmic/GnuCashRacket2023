@@ -28,6 +28,9 @@
          test-form-post-view
          test-form-get-view
 
+         adjust-fields adjust-fields-ca adjust-fields-us adjust-fields-intl
+         adjust-fields-fixed adjust-fields-other
+         
          strip-decimal
          )
 
@@ -613,9 +616,46 @@
     (sort filtered alloc-rec<?)))
 
 
+(struct adjust-fields (ca us intl fixed other))
+
+;; given the entry in a data-hash from a form
+;; return a number representation, treating empty as zero
+(define (input-type-number->number value-in-hash)
+  ; the value in the hash for type=number is a list!
+  (cond [(empty? value-in-hash) 0]
+        [else
+         (string->number (first value-in-hash))]))
+
+;; given a data-hash from a the allocation adjust form
+;; return a struct adjust-fields
+(define (data-hash->adjust-fields data-hash)
+  (cond [(null? data-hash) (adjust-fields 0 0 0 0 0)]
+        [else
+         (printf "DEBUG data-hash ~a add-ca: ~a~%" data-hash (hash-ref data-hash "add-ca"))
+         (adjust-fields
+          (if (hash-has-key? data-hash "add-ca")
+              (input-type-number->number (hash-ref data-hash "add-ca"))
+              0)
+          (if (hash-has-key? data-hash "add-us")
+              (input-type-number->number (hash-ref data-hash "add-us"))
+              0)
+          (if (hash-has-key? data-hash "add-intl")
+              (input-type-number->number (hash-ref data-hash "add-intl"))
+              0)
+          (if (hash-has-key? data-hash "add-fixed")
+              (input-type-number->number (hash-ref data-hash "add-fixed"))
+              0)
+          (if (hash-has-key? data-hash "add-other")
+              (input-type-number->number (hash-ref data-hash "add-other"))
+              0))]))
+         
+      
+
+
 (define (allocation-view gnucash-data gnucash-file-path arg-date url allocation-hash [data-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
+  (printf "DEBUG allocation-view arg-date: ~a url: ~a data-hash: ~a~%" arg-date url data-hash)
   (let* ([list-alloc-rec (if (null? allocation-hash) '()
                              (alloc-rec-except-target allocation-hash))]
          [master-list-roi (roi-on-date gnucash-data arg-date allocation-hash)]
@@ -627,6 +667,7 @@
          [target-allocation-percent (make-roi-line-from-allocation-rec target-allocation)]
          [difference-allocation-percent (subtract-roi-line target-allocation-percent actual-allocation-percent-line)]
          [difference-allocation-value (subtract-roi-line target-allocation-values grand-total-line)]
+         [adjust-fields (data-hash->adjust-fields data-hash)]
          [adjusted-allocation-percent
           (if (null? data-hash)
               null
@@ -635,7 +676,8 @@
          [page-title (format "~a | GnuCash" view-heading)]
          [main-content-heading view-heading]
          [date-selector (make-date-selector gnucash-data arg-date url)]
-         [form-url (substring url 0 (- (string-length url) 10))]
+         [form-url url] ; ? keep date in URL for post 
+         ;[form-url (substring url 0 (- (string-length url) 10))]
          [extra-javascript (include-template "static/js/date-selector.js")])
 
     

@@ -172,7 +172,7 @@ from struct account-roi
             list-account-roi))))
     
   
-
+; in case you need to print out an roi-line
 (define (print-roi-line arg-line)
   (let* ([price (roi-line-price arg-line)]
         [price-str (if (or (and (string? price) (equal? price ""))
@@ -203,6 +203,8 @@ from struct account-roi
 
             )))
 
+
+; in case you need to print out an account-roi
 (define (print-list-account-roi data)
   (for ([account-data data])
     (printf "~a~%" (repeat-char->string #\- 88))
