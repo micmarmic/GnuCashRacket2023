@@ -1,22 +1,93 @@
 @date-selector
 <div class="report-section w600">
+    <h3>Allocation Adjustments</h3>
+    <h4>Allocation</h4>
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr class="roi-heading">
+                <th class="text-center"></th>
+                <th class="text-center">Canada</th>
+                <th class="text-center">US</th>
+                <th class="text-center">International</th>
+                <th class="text-center">Fixed Inc.</th>
+                <th class="text-center">Other</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="text-center">Target Allocation</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-ca target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-us target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-intl target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-fixed target-allocation))</td>
+                <td class="text-center">@(as-percent-string (alloc-rec-other target-allocation))</td>
+            </tr>
+            <tr>
+                <td class="text-center">Actual Allocation</td>
+                <td class="text-center">@(as-percent-string (roi-line-ca actual-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-us actual-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-intl actual-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-fixed actual-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-other actual-allocation-percent-line))</td>
+            </tr>
+            <tr>
+                <td class="text-center">Difference $</td>
+                <td class="text-center">@(as-percent-string (roi-line-ca difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-us difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-intl difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-fixed difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-other difference-allocation-percent))</td>
+            </tr>
+            <tr class="allocation-adjustement">
+                <td class="text-center">ADJUSTED Allocation</td>
+                <td class="text-center">@(as-percent-string (roi-line-ca adjusted-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-us adjusted-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-intl adjusted-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-fixed adjusted-allocation-percent-line))</td>
+                <td class="text-center">@(as-percent-string (roi-line-other adjusted-allocation-percent-line))</td>
+            </tr>
+            <tr class="allocation-adjustement">
+                <td class="text-center">ADJUSTED Difference</td>
+                <td class="text-center">@(as-percent-string (roi-line-ca adjusted-difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-us adjusted-difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-intl adjusted-difference-allocation-percent))</td>
+                <td class="text-center">@(as-percent-string (roi-line-fixed adjusted-difference-allocation-percent))
+                </td>
+                <td class="text-center">@(as-percent-string (roi-line-other adjusted-difference-allocation-percent))
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <h4>Adjustment Amounts</h4>
     <form action="@|form-url|" method="post">
-        <p>
-            <label for="select1">Transactions 1:</label>
-            <select class="" id="inputTrans1">
-                <!-- commodites from target-allocation-values-->
-                @in[alloc list-alloc-rec]{
-                <option value="@(alloc-rec-commodity target-allocation)">@(alloc-rec-commodity
-                    alloc)</option>
-                }
-            </select>
-            <input type="number" id="value1" name="value1" value="TODO"><br><br>
-        </p>
-        <p>
-            <label for="add-ca">More CA</label>
-            <input type="number" width="10" id="add-ca" name="add-ca" value="@(adjust-fields-ca adjust-fields)">
-        </p>
-        <input type="submit" value="Go">
+        <table class="table table-striped table-sm allocation-input">
+            <thead>
+                <tr class="roi-heading">
+                    <th class="text-center">Canada</th>
+                    <th class="text-center">US</th>
+                    <th class="text-center">International</th>
+                    <th class="text-center">Fixed Inc.</th>
+                    <th class="text-center">Other</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="text-center"><input type="number" id="adjust-ca" name="adjust-ca"
+                            value="@(roi-line-ca adjustment-input-roi-line)"></td>
+                    <td class="text-center"><input type="number" id="adjust-us" name="adjust-us"
+                            value="@(roi-line-us adjustment-input-roi-line)"></td>
+                    <td class="text-center"><input type="number" id="adjust-intl" name="adjust-intl"
+                            value="@(roi-line-intl adjustment-input-roi-line)"></td>
+                    <td class="text-center"><input type="number" id="adjust-fixed" name="adjust-fixed"
+                            value="@(roi-line-fixed adjustment-input-roi-line)"></td>
+                    <td class="text-center"><input type="number" id="adjust-other" name="adjust-other"
+                            value="@(roi-line-other adjustment-input-roi-line)"></td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="text-center mb-4">
+            <input type="submit" value="Calculate">
+        </div>
     </form>
 </div>
 <div class="report-section w600">
@@ -57,7 +128,7 @@
                 <td class="text-center">@(as-percent-string (roi-line-other actual-allocation-percent-line))</td>
             </tr>
             <tr>
-                <td class="text-center">Difference $</td>
+                <td class="text-center">Difference</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl difference-allocation-percent))</td>
@@ -104,30 +175,6 @@
                 <td class="text-right">@(format-rounded-currency (roi-line-intl difference-allocation-value))</td>
                 <td class="text-right">@(format-rounded-currency (roi-line-fixed difference-allocation-value))</td>
                 <td class="text-right">@(format-rounded-currency (roi-line-other difference-allocation-value))</td>
-            </tr>
-        </tbody>
-    </table>
-</div>
-
-<div class="report-section w600">
-    <h3>Allocation Targets</h3>
-    <table class="table table-striped table-sm">
-        <thead>
-            <tr class="roi-heading">
-                <th class="text-center">Canada</th>
-                <th class="text-center">US</th>
-                <th class="text-center">International</th>
-                <th class="text-center">Fixed Inc.</th>
-                <th class="text-center">Other</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="text-center">40%</td>
-                <td class="text-center">20%</td>
-                <td class="text-center">20%</td>
-                <td class="text-center">10%</td>
-                <td class="text-center">0%</td>
             </tr>
         </tbody>
     </table>

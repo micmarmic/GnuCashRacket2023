@@ -86,6 +86,15 @@ html {
    margin-bottom: 10px;
 }
 
+.allocation-input input {
+   max-width: 100px;
+}
+
+.allocation-adjustement {
+   font-weight: 600;
+   font-style: italic;
+}
+
 */
 
 /* override bootstrap button to remove decoration on hover 

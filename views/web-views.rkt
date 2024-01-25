@@ -621,41 +621,59 @@
 ;; given the entry in a data-hash from a form
 ;; return a number representation, treating empty as zero
 (define (input-type-number->number value-in-hash)
-  ; the value in the hash for type=number is a list!
-  (cond [(empty? value-in-hash) 0]
+  ;; value is a list; empty field is '("")
+  (cond [(equal? '("") value-in-hash) 0]
         [else
          (string->number (first value-in-hash))]))
-
-;; given a data-hash from a the allocation adjust form
-;; return a struct adjust-fields
-(define (data-hash->adjust-fields data-hash)
-  (cond [(null? data-hash) (adjust-fields 0 0 0 0 0)]
+  
+#|
+(define (data-hash->adjust-fields data-hash current-total-value)
+  (cond [(null? data-hash) (roi-line "Blank roi" 0 0 0 0 0 0 "" 0 0 0 0 0)]
         [else
-         (printf "DEBUG data-hash ~a add-ca: ~a~%" data-hash (hash-ref data-hash "add-ca"))
-         (adjust-fields
-          (if (hash-has-key? data-hash "add-ca")
-              (input-type-number->number (hash-ref data-hash "add-ca"))
+         (roi-line "Adjusted Allocation Percent" 0 0 0 0 0 0 ""                   
+          (if (hash-has-key? data-hash "adjust-ca")
+              (input-type-number->number (hash-ref data-hash "adjust-ca"))
               0)
-          (if (hash-has-key? data-hash "add-us")
-              (input-type-number->number (hash-ref data-hash "add-us"))
+          (if (hash-has-key? data-hash "adjust-us")
+              (input-type-number->number (hash-ref data-hash "adjust-us"))
               0)
-          (if (hash-has-key? data-hash "add-intl")
-              (input-type-number->number (hash-ref data-hash "add-intl"))
+          (if (hash-has-key? data-hash "adjust-intl")
+              (input-type-number->number (hash-ref data-hash "adjust-intl"))
               0)
-          (if (hash-has-key? data-hash "add-fixed")
-              (input-type-number->number (hash-ref data-hash "add-fixed"))
+          (if (hash-has-key? data-hash "adjust-fixed")
+              (input-type-number->number (hash-ref data-hash "adjust-fixed"))
               0)
-          (if (hash-has-key? data-hash "add-other")
-              (input-type-number->number (hash-ref data-hash "add-other"))
+          (if (hash-has-key? data-hash "adjust-other")
+              (input-type-number->number (hash-ref data-hash "adjust-other"))
               0))]))
-         
-      
+|#
+
+;; given a data-hash and the current total value from a the allocation adjust form
+;; return a struct roi-line
+(define (data-hash->adjustment-roi-line data-hash current-total-line)
+  (cond [(null? data-hash) (roi-line "undefined roi" 0 0 0 0 0 0 ""
+                            0 0 0 0 0)]
+        [else
+         (define ca-adjust (input-type-number->number (hash-ref data-hash "adjust-ca")))
+         (define us-adjust (input-type-number->number (hash-ref data-hash "adjust-us")))
+         (define intl-adjust (input-type-number->number (hash-ref data-hash "adjust-intl")))
+         (define fixed-adjust (input-type-number->number (hash-ref data-hash "adjust-fixed")))
+         (define other-adjust (input-type-number->number (hash-ref data-hash "adjust-other")))
+         (define new-total-value
+           (+ (roi-line-value current-total-line) ca-adjust us-adjust intl-adjust fixed-adjust other-adjust))
+         (printf "DDDEBUG current-total-line ~a~%" current-total-line)
+         (roi-line "Adjusted Allocation Values" 0 0 new-total-value 0 0 0 "what?"                   
+                   (+ (roi-line-ca current-total-line) ca-adjust)
+                   (+ (roi-line-us current-total-line) us-adjust)
+                   (+ (roi-line-intl current-total-line) intl-adjust)
+                   (+ (roi-line-fixed current-total-line) fixed-adjust)
+                   (+ (roi-line-other current-total-line) other-adjust))]))
 
 
 (define (allocation-view gnucash-data gnucash-file-path arg-date url allocation-hash [data-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
-  (printf "DEBUG allocation-view arg-date: ~a url: ~a data-hash: ~a~%" arg-date url data-hash)
+  (printf "DEBUG grand total line: ~a~%" (calc-grand-total-list-account-roi (roi-on-date gnucash-data arg-date allocation-hash)))
   (let* ([list-alloc-rec (if (null? allocation-hash) '()
                              (alloc-rec-except-target allocation-hash))]
          [master-list-roi (roi-on-date gnucash-data arg-date allocation-hash)]
@@ -667,11 +685,24 @@
          [target-allocation-percent (make-roi-line-from-allocation-rec target-allocation)]
          [difference-allocation-percent (subtract-roi-line target-allocation-percent actual-allocation-percent-line)]
          [difference-allocation-value (subtract-roi-line target-allocation-values grand-total-line)]
-         [adjust-fields (data-hash->adjust-fields data-hash)]
+         ;; adjustment section - pass current grand total to get correct adjustment roi-line
+         [adjustment-input-roi-line
+          ;; feed an empty roi-line to get just the adjustment amounts
+          (data-hash->adjustment-roi-line
+           data-hash
+           (roi-line "undefined roi" 0 0 0 0 0 0 "" 0 0 0 0 0))]
+         [adjustment-roi-line (data-hash->adjustment-roi-line data-hash grand-total-line)]
          [adjusted-allocation-percent
-          (if (null? data-hash)
-              null
-              (adjust-allocation-percent data-hash actual-allocation-percent-line allocation-hash))]
+          (begin
+            (printf "DEBUG target-value: ~a~% adjustment-roi-line: ~a~%" target-allocation-values adjustment-roi-line)
+            (if (null? data-hash)
+                null
+                ;(adjust-allocation-percent data-hash actual-allocation-percent-line allocation-hash))]
+                (make-allocation-percent (subtract-roi-line target-allocation-values adjustment-roi-line))))]
+         [adjusted-allocation-percent-line (make-allocation-percent adjustment-roi-line)]
+         [adjusted-difference-allocation-percent
+          (subtract-roi-line target-allocation-percent adjusted-allocation-percent-line)]
+         ;; boiler plate
          [view-heading (format "Asset Allocation - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
          [main-content-heading view-heading]
@@ -684,6 +715,7 @@
     ;(displayln (hash-values allocation-hash))
     ;(print-roi-line target-allocation-percentage)
     ;(print-roi-line actual-allocation-percent-line)
+    (printf "DEBUG adjustment-roi-line: ~a~%" adjustment-roi-line)
     (response-200-base-template page-title main-content-heading
                                 (include-template "templates/allocation-view.html"))))
 
