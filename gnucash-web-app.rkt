@@ -18,9 +18,9 @@
 ;; ----------------
 ;;  CONFIG STRINGS
 ;; ----------------
-(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\gnucash\\michel.gnucash")
+;;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\gnucash\\michel.gnucash")
+(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\test-file1.gnucash")
 ;;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
-;;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\test-file1.gnucash")
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
 
 (define CATCH-EXCEPTIONS-ON #f)

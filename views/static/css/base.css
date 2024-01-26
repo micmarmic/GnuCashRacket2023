@@ -90,10 +90,14 @@ html {
    max-width: 100px;
 }
 
-.allocation-adjustement {
+.allocation-adjustment {
    font-weight: 600;
    font-style: italic;
 }
+
+ .fw-bold {
+   font-weight: bold;
+ }
 
 */
 
