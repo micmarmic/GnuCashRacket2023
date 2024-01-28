@@ -512,7 +512,8 @@
         [list-html (account-tree-no-root root-account start-indent)]
         [page-title "Accounts | GnuCash App"]
         [main-content-heading "Accounts"]
-        [message "Allo from account-list-view"]
+        ;; DEMO ERROR MESSAGE AT TOP OF SCREEN [message "Allo from account-list-view"]
+        [message ""]
         [main-content (include-template "templates/account-list.html")]
         )
     (response-200-base-template page-title main-content-heading main-content message)))
@@ -661,7 +662,6 @@
          (define other-adjust (input-type-number->number (hash-ref data-hash "adjust-other")))
          (define new-total-value
            (+ (roi-line-value current-total-line) ca-adjust us-adjust intl-adjust fixed-adjust other-adjust))
-         (printf "DDDEBUG current-total-line ~a~%" current-total-line)
          (roi-line "Adjusted Allocation Values" 0 0 new-total-value 0 0 0 "what?"                   
                    (+ (roi-line-ca current-total-line) ca-adjust)
                    (+ (roi-line-us current-total-line) us-adjust)
@@ -673,11 +673,11 @@
 (define (allocation-view gnucash-data gnucash-file-path arg-date url allocation-hash [data-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
-  (printf "DEBUG grand total line: ~a~%" (calc-grand-total-list-account-roi (roi-on-date gnucash-data arg-date allocation-hash)))
   (let* ([list-alloc-rec (if (null? allocation-hash) '()
                              (alloc-rec-except-target allocation-hash))]
          [master-list-roi (roi-on-date gnucash-data arg-date allocation-hash)]
-         [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]         
+         [grand-total-line (calc-grand-total-list-account-roi master-list-roi)]
+         ; allocation
          [actual-allocation-percent-line (make-allocation-percent grand-total-line)]
          [target-allocation (hash-ref allocation-hash "TARGET")]
          [target-allocation-values
@@ -694,7 +694,6 @@
          [adjustment-roi-line (data-hash->adjustment-roi-line data-hash grand-total-line)]
          [adjusted-allocation-percent
           (begin
-            (printf "DEBUG target-value: ~a~% adjustment-roi-line: ~a~%" target-allocation-values adjustment-roi-line)
             (if (null? data-hash)
                 null
                 ;(adjust-allocation-percent data-hash actual-allocation-percent-line allocation-hash))]
@@ -702,20 +701,18 @@
          [adjusted-allocation-percent-line (make-allocation-percent adjustment-roi-line)]
          [adjusted-difference-allocation-percent
           (subtract-roi-line target-allocation-percent adjusted-allocation-percent-line)]
-         ;; boiler plate
+         ;; boilerplate
          [view-heading (format "Asset Allocation - ~a" arg-date)]
          [page-title (format "~a | GnuCash" view-heading)]
          [main-content-heading view-heading]
          [date-selector (make-date-selector gnucash-data arg-date url)]
-         [form-url url] ; ? keep date in URL for post 
-         ;[form-url (substring url 0 (- (string-length url) 10))]
+         [form-url url]
          [extra-javascript (include-template "static/js/date-selector.js")])
 
     
     ;(displayln (hash-values allocation-hash))
     ;(print-roi-line target-allocation-percentage)
-    ;(print-roi-line actual-allocation-percent-line)
-    (printf "DEBUG adjustment-roi-line: ~a~%" adjustment-roi-line)
+    ;(print-roi-line actual-allocation-percent-line)    
     (response-200-base-template page-title main-content-heading
                                 (include-template "templates/allocation-view.html"))))
 

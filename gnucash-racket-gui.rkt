@@ -62,7 +62,7 @@ Main runs in two phases:
     (displayln "END DEMO")
     )
   (if (equal? "" error-message)
-      (main-gui %global-gnucash-data%)
+      (main-gui %global-gnucash-data% %global-allocation-data%)
       (display-cannot-start-gui error-message)        
       )
 )

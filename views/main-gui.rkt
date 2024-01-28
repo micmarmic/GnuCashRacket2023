@@ -6,6 +6,8 @@
          racket/gui/easy/operator
          racket/string)
 
+(require (file "../views/gui-views.rkt"))
+
 (provide main-gui)
 
 (define-namespace-anchor anc)
@@ -26,6 +28,7 @@
 
 (define column-names '("Commodity" "Value" "ROI"))
 
+#|
 (define sample-source-data
   (list
     (list "BMO" "2345" "12%")
@@ -36,7 +39,7 @@
     (list "BMO" 2000 "10%")
     (list "BCE" 14334 "3%")
     (list "APPL" 550 "-1%")))
-
+|#
 
 (define nested-vector (vector (vector "Bob" 12) (vector "Tom" 55)))
 
@@ -46,15 +49,15 @@
 (define (nested-list-ref lst row col)
   (list-ref (list-ref lst row) col))
 
-(nested-vec-ref nested-vector 0 1)
+;(nested-vec-ref nested-vector 0 1)
 
 (define (nested-vec-set! vec row col val)
   (vector-set! (vector-ref vec row) col val))
 
-(nested-vec-set! nested-vector 0 1 15)
-(nested-vec-ref nested-vector 0 1)
+;(nested-vec-set! nested-vector 0 1 15)
+;(nested-vec-ref nested-vector 0 1)
 
-(printf "Value from nested list: ~a~%" (nested-list-ref sample-source-data 0 1))
+;(printf "Value from nested list: ~a~%" (nested-list-ref sample-source-data 0 1))
 
 (define (make-nested-vector rows cols [init-val null])
   ; create empty vector of n rows
@@ -80,24 +83,51 @@
              ))           
      result]))
 
-       
-(printf "Result: ~a~%" (nested-list->gui-string-vector sample-source-data))
-
-
+#|
 (define @source (@ sample-source-data))
 (define @entries (@source . ~> . (λ (source) (nested-list->gui-string-vector source))))
+
 
 (define test-table
   (table column-names
       #:column-widths (list (list 0 100) (list 1 50) (list 2 100))
       @entries
     ))
+|#
+;(printf "Result: ~a~%" (nested-list->gui-string-vector sample-source-data))
+
+
+;; (define @source (@ sample-source-data))
 
 (define @choice (@ "Set1"))
 (define @choice-values (@ '("Set1" "Set2")))
 (define @choices (@choice-values . ~> . (λ (value) value)))
 
-(define (main-gui)
+;; rotate through data in hash
+;; input: hash, hashkeys, current index in hashkeys
+;; call with index = -1 to get first account
+(define (next-account-and-index data-hash current-index)
+  (define keys (hash-keys data-hash))
+  (cond [(or (= -1 current-index)
+             (= (add1 current-index) (length keys)))
+         (values (hash-ref data-hash (list-ref keys 0)) 0)]
+        [else
+         (let ([next-index (add1 current-index)])
+           (values (hash-ref data-hash (list-ref keys next-index)) next-index))]))
+  
+
+
+(define (main-gui gnucash-data allocation-data)
+  (define accounts-hash (get-roi-table-data gnucash-data "2023-12-31"))
+  (define keys (hash-keys accounts-hash))
+  (define num-keys (length keys))
+  (define-values (first-account-data index) (next-account-and-index accounts-hash -1))
+  (displayln accounts-hash)
+
+  (define @account-name (@ (list-ref keys index)))
+  (define @source (@ first-account-data))
+  (define @entries (@source . ~> . (λ (source) (nested-list->gui-string-vector source))))
+
   (render
    (window
     #:size (list 400 600)
@@ -105,57 +135,19 @@
     ; #:label "Selection:"
     ; #:selection @choice
     ; )
+    (text @account-name)
+    (table column-names
+           #:column-widths (list (list 0 200) (list 1 100) (list 2 100))
+           @entries
+           )
     (button
      "Change data"
      (λ ()
-       (@source . := . sample-source-data2)))
-    test-table)))
-
-#|
-(define args
-    (arguments (for/list ([_ (in-range 2)])
-      (table
-       '("Name" "Age" "Nationality")
-       ;(vector (vector "Bo" "Bill") (vector "23" "12"))
-       (nested-list->gui-string-vector sample-source-data)
-       #:column-widths (list (list 0 100) (list 1 50) (list 2 100))
-       ))
-      ))
-
-(define win-exp '(window
-    #:size (list 400 600)
-    (text "Allo")
-    (text "Bob")
-    ))
-
-
-(define win
-   (window
-    #:size (list 400 600)
-    (text "Allo")
-    (text "Bob")
-    ))
- 
-(define win2 (eval win-exp ns))
-
-(define texts '("Text1" "Text2"))
-(define (texts->string-exp texts)
-  (foldr string-append ""
-   (map (lambda (s) (format "(text \"~a\")\n" s)) texts)))
-(define texts-exp (texts->string-exp texts))
-(define win3-exp
-  (string-append
-   "(window #:size (list 400 600)\n"
-      texts-exp
-      test-table-source
-   ")"))
-
-(define win3-exp-for-eval (read (open-input-string win3-exp)))
-  
-win3-exp-for-eval
-;(define win3-exp (
-
-|#
-
+       (begin
+         (define-values (new-data next-index) (next-account-and-index accounts-hash index))
+         (set! index next-index)
+         (@account-name . := . (list-ref keys index))
+         (@source . := . new-data))))
+)))
 
 ;(main-gui)

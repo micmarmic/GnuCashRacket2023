@@ -1,4 +1,5 @@
 <div class="report-section w600 text-center">
+    <h2 class="main-content-heading">@|main-content-heading|</h2>
     @date-selector
 </div>
 <div class="report-section w600">
@@ -17,7 +18,7 @@
         </thead>
         <tbody>
             <tr>
-                <td class="text-center fw-bold">Target Allocation</td>
+                <td class="fw-bold">Target Allocation</td>
                 <td class="text-center">@(as-percent-string (alloc-rec-ca target-allocation))</td>
                 <td class="text-center">@(as-percent-string (alloc-rec-us target-allocation))</td>
                 <td class="text-center">@(as-percent-string (alloc-rec-intl target-allocation))</td>
@@ -25,7 +26,7 @@
                 <td class="text-center">@(as-percent-string (alloc-rec-other target-allocation))</td>
             </tr>
             <tr>
-                <td class="text-center fw-bold">Actual Allocation</td>
+                <td class="fw-bold">Actual Allocation</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca actual-allocation-percent-line))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us actual-allocation-percent-line))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl actual-allocation-percent-line))</td>
@@ -33,7 +34,7 @@
                 <td class="text-center">@(as-percent-string (roi-line-other actual-allocation-percent-line))</td>
             </tr>
             <tr>
-                <td class="text-center fw-bold">Difference $</td>
+                <td class="fw-bold">Difference $</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl difference-allocation-percent))</td>
@@ -41,7 +42,7 @@
                 <td class="text-center">@(as-percent-string (roi-line-other difference-allocation-percent))</td>
             </tr>
             <tr class="allocation-adjustment">
-                <td class="text-center fw-bold">ADJUSTED Allocation</td>
+                <td class="fw-bold">ADJUSTED Allocation</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca adjusted-allocation-percent-line))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us adjusted-allocation-percent-line))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl adjusted-allocation-percent-line))</td>
@@ -49,7 +50,7 @@
                 <td class="text-center">@(as-percent-string (roi-line-other adjusted-allocation-percent-line))</td>
             </tr>
             <tr class="allocation-adjustment">
-                <td class="text-center fw-bold">ADJUSTED Difference</td>
+                <td class="fw-bold">ADJUSTED Difference</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca adjusted-difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us adjusted-difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl adjusted-difference-allocation-percent))</td>
@@ -143,7 +144,7 @@
         </thead>
         <tbody>
             <tr>
-                <td class="text-center fw-bold">Target Allocation</td>
+                <td class="fw-bold">Target Allocation</td>
                 <td class="text-center">@(as-percent-string (alloc-rec-ca target-allocation))</td>
                 <td class="text-center">@(as-percent-string (alloc-rec-us target-allocation))</td>
                 <td class="text-center">@(as-percent-string (alloc-rec-intl target-allocation))</td>
@@ -151,7 +152,7 @@
                 <td class="text-center">@(as-percent-string (alloc-rec-other target-allocation))</td>
             </tr>
             <tr>
-                <td class="text-center fw-bold">Actual Allocation</td>
+                <td class="fw-bold">Actual Allocation</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca actual-allocation-percent-line))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us actual-allocation-percent-line))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl actual-allocation-percent-line))</td>
@@ -159,7 +160,7 @@
                 <td class="text-center">@(as-percent-string (roi-line-other actual-allocation-percent-line))</td>
             </tr>
             <tr>
-                <td class="text-center fw-bold">Difference</td>
+                <td class="fw-bold">Difference</td>
                 <td class="text-center">@(as-percent-string (roi-line-ca difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-us difference-allocation-percent))</td>
                 <td class="text-center">@(as-percent-string (roi-line-intl difference-allocation-percent))</td>
@@ -188,7 +189,7 @@
         </thead>
         <tbody>
             <tr>
-                <td class="text-center fw-bold">Target Allocation</td>
+                <td class="fw-bold">Target Allocation</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-ca target-allocation-values))</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-us target-allocation-values))</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-intl target-allocation-values))</td>
@@ -196,7 +197,7 @@
                 <td class="text-center">@(format-rounded-currency (roi-line-other target-allocation-values))</td>
             </tr>
             <tr>
-                <td class="text-center fw-bold">Actual Allocation</td>
+                <td class="fw-bold">Actual Allocation</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-ca grand-total-line))</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-us grand-total-line))</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-intl grand-total-line))</td>
@@ -204,7 +205,7 @@
                 <td class="text-center">@(format-rounded-currency (roi-line-other grand-total-line))</td>
             </tr>
             <tr>
-                <td class="text-center fw-bold">Difference</td>
+                <td class="fw-bold">Difference</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-ca difference-allocation-value))</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-us difference-allocation-value))</td>
                 <td class="text-center">@(format-rounded-currency (roi-line-intl difference-allocation-value))</td>

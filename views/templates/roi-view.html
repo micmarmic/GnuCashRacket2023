@@ -1,9 +1,12 @@
-@date-selector
+<div class="report-section w600 text-center">
+    <h2 class="main-content-heading">@|main-content-heading|</h2>
+    @date-selector
+</div>
 <!-- 
 (struct roi-line (commo-id shares price value cost gain-loss roi))
 (struct account-roi (account total-roi-line child-roi-lines))
 -->
-<div style="max-width:600px">
+<div class="report-section w600">
     @in[act-roi master-list-roi]{
     <h4>@(send (account-roi-account act-roi) get-name)</h4>
     <p class="alert alert-danger @(class-for-hide-if-blank @(account-roi-error-message act-roi))">

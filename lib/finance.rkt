@@ -322,7 +322,6 @@ from struct account-roi
 ;; input: roi-line
 ;; output: roi-line
 (define (make-allocation-percent line)
-  (printf "DEBUG make-allocation-percent line: ~a~%" line)
   (if (zero? (roi-line-value line))
       line      
       (roi-line
