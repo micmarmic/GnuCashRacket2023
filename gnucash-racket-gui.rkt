@@ -26,9 +26,9 @@ Main runs in two phases:
 (define %global-gnucash-data% null) ; global set in (start-app)
 (define %global-allocation-data% null) ; global set in (start-app)
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
-(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 ;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\conjoint-UNCOMPRESSED-SNAPSHOT.gnucash")
 ;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\test-file1.gnucash")
+(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 
 (define (main)
 

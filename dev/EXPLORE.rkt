@@ -11,7 +11,7 @@
         [(eval-append (rest lst) (string-append result (eval (first lst) ns)))]))
   
 (define (what lst)
-  (eval (first lst) ns))
+    (eval (first lst) ns))
 
 (define (why)
   (bold "why"))
@@ -27,7 +27,7 @@
             (display test))
           (loop tail)))))
 ;(dump '("a" (bold "allo")))
-(what '((bold "b")))
+;(what '(bold "b"))
 (what '((string-append "bob " "allo")))
 (why)
 

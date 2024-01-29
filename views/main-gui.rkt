@@ -23,10 +23,22 @@
 
 (define @selection (@ #f))
 |#
+
+(define (right-align-fixed-text width text)
+  (~a text #:min-width width #:left-pad-string " " #:align 'right))
+
+
+
 (define (number->string* n)
   (if n (number->string n) ""))
 
-(define column-names '("Commodity" "Value" "ROI"))
+(define column-names
+  (list
+    "Commodity"
+    (right-align-fixed-text 10 "Cost")
+    (right-align-fixed-text 10 "Value")
+    (right-align-fixed-text 10 "Gain/Loss")
+    (right-align-fixed-text 10  "ROI")))
 
 #|
 (define sample-source-data
@@ -66,7 +78,7 @@
   (for ([row-num (in-range rows)])
     (vector-set! result row-num (make-vector cols init-val)))
   result)
-    
+
 
 (define (nested-list->gui-string-vector nested-list)
   (cond
@@ -79,8 +91,11 @@
            (for ([source-col (in-range num-source-cols)])
              (define value (nested-list-ref nested-list source-row source-col))
              ; remember: value to string
-             (nested-vec-set! result source-row source-col (~a value))
-             ))           
+             (if (zero? source-col)
+                 (nested-vec-set! result source-row source-col (~a value))             
+                 (nested-vec-set! result source-row source-col
+                                  (right-align-fixed-text 10 value)))
+             ))
      result]))
 
 #|
@@ -119,35 +134,52 @@
 
 (define (main-gui gnucash-data allocation-data)
   (define accounts-hash (get-roi-table-data gnucash-data "2023-12-31"))
+  (define grand-total-data (hash-ref accounts-hash "GRAND TOTAL"))
+  (hash-remove! accounts-hash "GRAND TOTAL")
+  (printf "hash-keys ~a~%" (hash-keys accounts-hash))
   (define keys (hash-keys accounts-hash))
+  (printf "hash-keys ~a~%" (hash-keys accounts-hash))
   (define num-keys (length keys))
   (define-values (first-account-data index) (next-account-and-index accounts-hash -1))
   (displayln accounts-hash)
 
+  (define @grand-total-source (@ grand-total-data))
+  (define @grand-total-entries 
+    (@grand-total-source . ~> . (λ (@grand-total-source)
+                                  (nested-list->gui-string-vector @grand-total-source))))
+  
+  
   (define @account-name (@ (list-ref keys index)))
   (define @source (@ first-account-data))
   (define @entries (@source . ~> . (λ (source) (nested-list->gui-string-vector source))))
 
   (render
    (window
-    #:size (list 400 600)
-    ;(choice
-    ; #:label "Selection:"
-    ; #:selection @choice
-    ; )
-    (text @account-name)
+    #:title "GnuCash ROI Report"
+    #:size (list 800 400)
+    (text @account-name #:font (font "System" 11))
     (table column-names
-           #:column-widths (list (list 0 200) (list 1 100) (list 2 100))
+           #:column-widths (list (list 0 200) (list 1 100) (list 2 100) (list 3 100) (list 4 100))
+           #:stretch '(#t #t)
+           #:font (font "Consolas" 11 #:family 'modern)
            @entries
            )
     (button
-     "Change data"
+     "Next Account"
      (λ ()
        (begin
          (define-values (new-data next-index) (next-account-and-index accounts-hash index))
          (set! index next-index)
          (@account-name . := . (list-ref keys index))
          (@source . := . new-data))))
-)))
+    (text "GRAND TOTAL" #:font (font "System" 11))
+    (table column-names
+           #:column-widths (list (list 0 200) (list 1 100) (list 2 100) (list 3 100) (list 4 100))
+           #:stretch '(#t #f)
+           #:font (font "Consolas" 11 #:family 'modern)
+           @grand-total-entries
+           )
+    
+    )))
 
 ;(main-gui)
