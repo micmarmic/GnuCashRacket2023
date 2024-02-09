@@ -19,7 +19,8 @@
 ;;  CONFIG STRINGS
 ;; ----------------
 ;;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\gnucash\\michel.gnucash")
-(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\test-file1.gnucash")
+;(define DEFAULT-PATH-DATA-FILE "d:\\Documents\\programming\\racket\\racket-projects\\GnuCash\\tests\\test-file1.gnucash")
+(define DEFAULT-PATH-DATA-FILE "/media/michel/WindowsD/Documents/programming/racket/racket-projects/GnuCash/tests/test-file1.gnucash")
 ;;(define DEFAULT-PATH-DATA-FILE "D:\\__DATA_FOR_APPS\\GnuCash-Uncompressed\\michel-UNCOMPRESSED-SNAPSHOT.gnucash")
 (define DEFAULT-ALLOCATION-DATA-FILE "allocation-data.txt")
 
@@ -238,7 +239,8 @@ Images can be served statically using http-response-image.
                     (set! %global-load-fail-error-text%
                           (format "ERROR STARTING WEB APP: ~a" (exn-message e))))])
 
-    (displayln "Loading configuration.")    
+    (displayln "Loading configuration.")
+    (printf "Loading allocation file '~a'~%" DEFAULT-ALLOCATION-DATA-FILE) 
     (set! %global-allocation-data% (file->alloc-hash DEFAULT-ALLOCATION-DATA-FILE))
     (displayln "Configuration okay.")    
     (displayln "")  

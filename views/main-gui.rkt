@@ -150,19 +150,29 @@
   
   
   (define @account-name (@ (list-ref keys index)))
-  (define @source (@ first-account-data))
-  (define @entries (@source . ~> . (λ (source) (nested-list->gui-string-vector source))))
+  (define @roi-source (@ first-account-data))
+  (define @roi-for-account (@roi-source . ~> . (λ (source) (nested-list->gui-string-vector @roi-source))))
 
+  ;;(define @allocation-source 
+  
   (render
    (window
     #:title "GnuCash ROI Report"
     #:size (list 800 400)
-    (text @account-name #:font (font "System" 11))
+    #|
+    (text "Adjust Allocation" #:font (font "System" 11))
     (table column-names
            #:column-widths (list (list 0 200) (list 1 100) (list 2 100) (list 3 100) (list 4 100))
            #:stretch '(#t #t)
            #:font (font "Consolas" 11 #:family 'modern)
            @entries
+           )|#
+    (text @account-name #:font (font "System" 11))
+    (table column-names
+           #:column-widths (list (list 0 200) (list 1 100) (list 2 100) (list 3 100) (list 4 100))
+           #:stretch '(#t #t)
+           #:font (font "Consolas" 11 #:family 'modern)
+           @roi-for-account
            )
     (button
      "Next Account"
@@ -171,7 +181,7 @@
          (define-values (new-data next-index) (next-account-and-index accounts-hash index))
          (set! index next-index)
          (@account-name . := . (list-ref keys index))
-         (@source . := . new-data))))
+         (@roi-source . := . new-data))))
     (text "GRAND TOTAL" #:font (font "System" 11))
     (table column-names
            #:column-widths (list (list 0 200) (list 1 100) (list 2 100) (list 3 100) (list 4 100))

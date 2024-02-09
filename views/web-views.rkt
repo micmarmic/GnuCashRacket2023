@@ -107,7 +107,7 @@
 
 ;; DEV NOTE: roi-on-date then calc-grand-total... yields a line with the total value
 ;; and the total allocation for all accounts, READY for allocation view
-
+;; template uses: grand-total-line, master-list-roi
 (define (roi-report-view gnucash-data gnucash-file-path arg-date url [alloc-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
@@ -670,6 +670,9 @@
                    (+ (roi-line-other current-total-line) other-adjust))]))
 
 
+;; template uses: target-allocation, actual-allocation-percent-line, difference-allocation-percent,
+;;     adjusted-allocation-percent-line, adjusted-difference-allocation-percent, adjustment-input-roi-line
+;;     list-alloc-rec
 (define (allocation-view gnucash-data gnucash-file-path arg-date url allocation-hash [data-hash null])
   ;(with-handlers ([exn:fail? (λ (e) (displayln e)(exception-page (exn-message e)))])
   ;(with-handlers ([exn:fail? (λ (e) (exn-handler e))])
@@ -685,12 +688,12 @@
          [target-allocation-percent (make-roi-line-from-allocation-rec target-allocation)]
          [difference-allocation-percent (subtract-roi-line target-allocation-percent actual-allocation-percent-line)]
          [difference-allocation-value (subtract-roi-line target-allocation-values grand-total-line)]
-         ;; adjustment section - pass current grand total to get correct adjustment roi-line
+         ;; adjustment section - pass current grand total to get correct adjustment roi-line        
          [adjustment-input-roi-line
           ;; feed an empty roi-line to get just the adjustment amounts
           (data-hash->adjustment-roi-line
            data-hash
-           (roi-line "undefined roi" 0 0 0 0 0 0 "" 0 0 0 0 0))]
+           (roi-line "undefined roi" 0 0 0 0 0 0 "" 0 0 0 0 0))]        
          [adjustment-roi-line (data-hash->adjustment-roi-line data-hash grand-total-line)]
          [adjusted-allocation-percent
           (begin
